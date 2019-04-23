@@ -12,12 +12,14 @@ namespace TensionSag.Tests
     {
       // Setup
       var name = "Test Wire";
-      var length = 15.0;
-      var temperature = 15.0;
+      var totalCrossSection = 15.0;
+      var totalLinearWeight = 15.0;
+      var elasticity = 1.0;
+      var thermalCoefficient = 4.0;
       var material = WireMaterial.Copper;
 
       // Execute
-      var wire = new Wire(name, length, temperature, material);
+      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, material);
 
       // Assert
       Assert.IsType<Wire>(wire);
@@ -28,12 +30,16 @@ namespace TensionSag.Tests
     public void CalculateTension_Success()
     {
       // Setup
+      var expectedResult = 225.0;
       var name = "Tension Wire Test";
-      var length = 15.0;
-      var temperature = 15.0;
+      var totalCrossSection = 15.0;
+      var totalLinearWeight = 15.0;
+      var elasticity = 1.0;
+      var thermalCoefficient = 4.0;
       var material = WireMaterial.Copper;
-      var expectedResult = length * temperature;
-      var wire = new Wire(name, length, temperature, material);
+
+      // Execute
+      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, material);
 
       // Execute
       var tension = wire.CalculateTension();
@@ -46,12 +52,16 @@ namespace TensionSag.Tests
     public void CalculateSag_Success()
     {
       // Setup
+      var expectedResult = 225.0;
       var name = "Sag Wire Test";
-      var length = 15.0;
-      var temperature = 15.0;
+      var totalCrossSection = 15.0;
+      var totalLinearWeight = 15.0;
+      var elasticity = 1.0;
+      var thermalCoefficient = 4.0;
       var material = WireMaterial.Copper;
-      var expectedResult = length * 25.0;
-      var wire = new Wire(name, length, temperature, material);
+
+      // Execute
+      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, material);
 
       // Execute
       var tension = wire.CalculateSag();

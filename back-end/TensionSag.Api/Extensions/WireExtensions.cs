@@ -6,12 +6,12 @@ namespace TensionSag.Api.Extensions
   {
     public static double CalculateTension(this Wire wire)
     {
-      return wire.Length * wire.Temperature;
+      return wire.TotalCrossSection * wire.TotalLinearWeight;
     }
 
     public static double CalculateSag(this Wire wire)
     {
-      return wire.Length * wire.Temperature;
+      return wire.TotalCrossSection * wire.TotalLinearWeight;
     }
   }
 }
