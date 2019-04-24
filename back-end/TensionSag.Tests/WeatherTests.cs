@@ -17,8 +17,12 @@ namespace TensionSag.Tests
       var totalLinearWeight = 15.0;
       var elasticity = 1.0;
       var thermalCoefficient = 4.0;
+      var startingTension = 500.0;
+      var startingTemp = 15;
+      var startingSpanLength = 25;
+      var startingElevation = 0.0;
       var material = WireMaterial.Copper;
-      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, material);
+      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, startingTension, startingTemp, startingSpanLength, startingElevation, material);
       var temperature = 25.0;
       var iceRadius = 2.0;
       var windPressure = 3.0;
@@ -41,8 +45,12 @@ namespace TensionSag.Tests
       var totalLinearWeight = 15.0;
       var elasticity = 1.0;
       var thermalCoefficient = 4.0;
+      var startingTension = 500.0;
+      var startingTemp = 15;
+      var startingSpanLength = 25;
+      var startingElevation = 0.0;
       var material = WireMaterial.Copper;
-      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, material);
+      var wire = Wire.Create(name, totalCrossSection, totalLinearWeight, elasticity, thermalCoefficient, startingTension, startingTemp, startingSpanLength, startingElevation, material);
       var temperature = 25.0;
       var iceRadius = 2.0;
       var windPressure = 3.0;
