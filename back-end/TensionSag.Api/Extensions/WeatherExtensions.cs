@@ -7,6 +7,8 @@ namespace TensionSag.Api.Extensions
     {
         private static readonly double TheConstant = 0.0;
 
+        //this calculates the final elastic tension
+        //currently does not account for plastic elongation that is not already present at the reference tension
         public static double CalculateElasticTension(this Weather weather, Wire wire)
         {
             double StartingArcLength = CalculateArcLength(wire.StartingSpanLength, wire.StartingElevation, wire.StartingTension / wire.InitialWireLinearWeight);
@@ -27,10 +29,12 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
-        public static double CalculateInitialTensions(this Weather weather, Wire wire)
+        //this calculates the 'initial' tension from the stress strain curve.
+        //currently it assumes the user input tension is an initial tension for the original length calculation
+        public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
             double horizontalTension;
-            double originalLength = WireExtensions.CalculateOriginalLengthFromInitialTension(wire);
+            double originalLength = WireExtensions.CalculateOriginalLength(wire, creep);
 
             //this estimate may need to be improved by actually calculating the elastic arc length at weather condition
             double lengthEstimate = originalLength + wire.ThermalCoefficient * originalLength * (weather.Temperature - wire.StartingTemp);
@@ -82,6 +86,7 @@ namespace TensionSag.Api.Extensions
             return stressStrainTension;
         }
 
+        //calculates sag for any wire geometry
         public static double CalculateSag(double catenaryConstant, double spanLength, double spanElevation)
         {
             double XcForSag = CalculateXc(spanLength, spanElevation, catenaryConstant);
@@ -112,12 +117,14 @@ namespace TensionSag.Api.Extensions
             return spanLength / 2.0d + catenaryConstant * Math.Log(tempZVar + Math.Pow(1 + Math.Pow(tempZVar, 2), 0.5d));
         }
 
+        //calculates the total hanging wire length between attachment points
         public static double CalculateArcLength(double spanLength, double spanElevation, double catenaryConstant)
         {
             double Xc = CalculateXc(spanLength, spanElevation, catenaryConstant);
             return catenaryConstant * (sinh((spanLength - Xc) / catenaryConstant) + sinh(Xc / catenaryConstant));
         }
 
+        //calculates the final weather loaded linear weight of the wire and bundle. does not account for NESC linear constant yet
         public static double CalculateFinalLinearForce(this Weather weather, Wire wire)
         {
             double WindLinearForce = wire.FinalWireDiameter * weather.WindPressure;
@@ -126,6 +133,7 @@ namespace TensionSag.Api.Extensions
             return Math.Sqrt(Math.Pow(WindLinearForce, 2d) + Math.Pow(WeightLinearForce, 2d));
         }
 
+        //newton raphson method junk for the elastic tension calculation. this basically follows the numerical tension method but very accurately accounts for changes in elevation
         public static double SolveForDifference(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation, double psi, double beta)
         {
 

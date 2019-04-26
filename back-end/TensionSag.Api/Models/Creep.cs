@@ -5,10 +5,10 @@ namespace TensionSag.Api.Models
     public double CreepRTSPercent { get; }
     public double NumberTwo { get; }
 
-    public Creep(double creepRTSPercent, double numberTwo)
+    public Creep(double creepRTSPercent)
     {
             CreepRTSPercent = creepRTSPercent;
-      NumberTwo = numberTwo;
+      
     }
   }
 }

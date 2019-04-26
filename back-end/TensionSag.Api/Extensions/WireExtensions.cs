@@ -7,10 +7,22 @@ namespace TensionSag.Api.Extensions
     {
         private static readonly double TheConstant = 0.0;
 
+        public static double CalculateOriginalLength(this Wire wire, Creep creep)
+        {
+            if (wire.StartingTensionType == true)
+            {
+                return CalculateOriginalLengthFromInitialTension(wire);
+            }
+            else
+            {
+                return CalculateOriginalLengthFromFinalTension(wire, creep);
+            }
+        }
+
         public static double CalculateOriginalLengthFromInitialTension(this Wire wire)
         {
 
-            //calculate the average tension in the wire then find the inital stress
+            //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = wire.StartingTension / wire.InitialWireLinearWeight;
 
             double LeftVerticalForce = -sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * wire.StartingTension;
@@ -34,6 +46,7 @@ namespace TensionSag.Api.Extensions
         {
             double strain = 0.01;
 
+            // these also get defined in the weather extension when calculating initial tensions, refactor this to only happen in one place
             double wireStressStrainK0 = wire.OuterStressStrainK0 + wire.CoreStressStrainK0;
             double wireStressStrainK1 = wire.OuterStressStrainK1 + wire.CoreStressStrainK1;
             double wireStressStrainK2 = wire.OuterStressStrainK2 + wire.CoreStressStrainK2;
@@ -54,6 +67,16 @@ namespace TensionSag.Api.Extensions
 
         }
 
+        public static double CalculateOriginalLengthFromFinalTension(this Wire wire, Creep creep)
+        {
+            double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
+            double startingArcLength = WeatherExtensions.CalculateArcLength(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant);
+
+            double stressFreeLength = startingArcLength - wire.StartingTension * startingArcLength / (wire.TotalCrossSection * wire.Elasticity);
+            double creepStrain = CreepExtensions.CalculateCreepStrain(creep, wire);
+            return stressFreeLength - stressFreeLength*creepStrain;
+
+        }
 
 
 
