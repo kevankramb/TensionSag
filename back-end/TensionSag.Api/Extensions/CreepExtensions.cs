@@ -7,13 +7,14 @@ namespace TensionSag.Api.Extensions
   {
     public static double CalculateCreepStrain(this Creep creep, Wire wire)
     {
+            //todo: change this to also calculate the plastic elongation due to high tension with the stress-strain curve and return the higher strain
             //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = (creep.CreepRTSPercent / 100) * wire.MaxRateStrength / wire.FinalWireLinearWeight;
 
-            double LeftVerticalForce = -sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * (creep.CreepRTSPercent / 100) * wire.MaxRateStrength;
+            double LeftVerticalForce = -MathUtility.Sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * (creep.CreepRTSPercent / 100) * wire.MaxRateStrength;
             double LeftTotalTension = Math.Sqrt(Math.Pow(LeftVerticalForce, 2) + Math.Pow((creep.CreepRTSPercent / 100) * wire.MaxRateStrength, 2));
 
-            double RightVerticalForce = -sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, -wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * (creep.CreepRTSPercent / 100) * wire.MaxRateStrength;
+            double RightVerticalForce = -MathUtility.Sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, -wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * (creep.CreepRTSPercent / 100) * wire.MaxRateStrength;
             double RightTotalTension = Math.Sqrt(Math.Pow(RightVerticalForce, 2) + Math.Pow((creep.CreepRTSPercent / 100) * wire.MaxRateStrength, 2));
 
             double averageTension = (LeftTotalTension + RightTotalTension) / 2 - wire.InitialWireLinearWeight * WeatherExtensions.CalculateSag(startingCatenaryCosntant, wire.StartingSpanLength, wire.StartingElevation) / 2;
@@ -46,10 +47,10 @@ namespace TensionSag.Api.Extensions
             //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
 
-            double LeftVerticalForce = -sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * wire.StartingTension;
+            double LeftVerticalForce = -MathUtility.Sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * wire.StartingTension;
             double LeftTotalTension = Math.Sqrt(Math.Pow(LeftVerticalForce, 2) + Math.Pow(wire.StartingTension, 2));
 
-            double RightVerticalForce = -sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, -wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * wire.StartingTension;
+            double RightVerticalForce = -MathUtility.Sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, -wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * wire.StartingTension;
             double RightTotalTension = Math.Sqrt(Math.Pow(RightVerticalForce, 2) + Math.Pow(wire.StartingTension, 2));
 
             double averageTension = (LeftTotalTension + RightTotalTension) / 2 - wire.InitialWireLinearWeight * WeatherExtensions.CalculateSag(startingCatenaryCosntant, wire.StartingSpanLength, wire.StartingElevation) / 2;

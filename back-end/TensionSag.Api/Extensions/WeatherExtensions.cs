@@ -10,11 +10,12 @@ namespace TensionSag.Api.Extensions
 
         //this calculates the final elastic tension
         //currently does not account for plastic elongation that is not already present at the reference tension
-        public static double CalculateElasticTension(this Weather weather, Wire wire)
+        public static double CalculateElasticTension(this Weather weather, Wire wire, Creep creep)
         {
-            double StartingArcLength = CalculateArcLength(wire.StartingSpanLength, wire.StartingElevation, wire.StartingTension / wire.InitialWireLinearWeight);
-            double psi = StartingArcLength + wire.ThermalCoefficient * StartingArcLength * (weather.Temperature - wire.StartingTemp) - StartingArcLength * wire.StartingTension / (wire.Elasticity * wire.TotalCrossSection);
-            double beta = StartingArcLength / (wire.Elasticity * wire.TotalCrossSection);
+            double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
+            double StartingWireLength = orginalLength + orginalLength*CreepExtensions.CalculateCreepStrain(creep, wire);
+            double psi = StartingWireLength + wire.ThermalCoefficient * StartingWireLength * (weather.Temperature - wire.StartingTemp) - StartingWireLength;
+            double beta = StartingWireLength / (wire.Elasticity * wire.TotalCrossSection);
 
             double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
             double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate / 2) * Math.Sqrt(lengthEstimate / (6 * lengthEstimate));
