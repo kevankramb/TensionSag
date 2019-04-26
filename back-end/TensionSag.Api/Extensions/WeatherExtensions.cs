@@ -5,7 +5,8 @@ namespace TensionSag.Api.Extensions
 {
     public static class WeatherExtensions
     {
-        private static readonly double TheConstant = 0.0;
+        private static readonly double IceDensity = 916.8;
+        private static readonly double Gravity = 9.80665;
 
         //this calculates the final elastic tension
         //currently does not account for plastic elongation that is not already present at the reference tension
@@ -50,7 +51,7 @@ namespace TensionSag.Api.Extensions
             while (Math.Abs(lengthDifference) > 0.0001d )
             {
                 double strain = (lengthEstimate - originalLength) / originalLength;
-                double stress = (wireStressStrainK0 + wireStressStrainK1 * strain + wireStressStrainK2 * Math.Pow(strain, 2) + wireStressStrainK3 * Math.Pow(strain, 3) + wireStressStrainK4 * Math.Pow(strain, 4);
+                double stress = wireStressStrainK0 + wireStressStrainK1 * strain + wireStressStrainK2 * Math.Pow(strain, 2) + wireStressStrainK3 * Math.Pow(strain, 3) + wireStressStrainK4 * Math.Pow(strain, 4);
                 double wireAverageTension = stress * wire.TotalCrossSection;
 
                 double TensionDiff = 1000;
@@ -59,10 +60,10 @@ namespace TensionSag.Api.Extensions
                 {
                     double CatenaryConstantEstimate = horizontalTension / CalculateFinalLinearForce(weather, wire);
                     //refactor this average tension calculation to be a single function that is used here and in the wireExtension
-                    double LeftVerticalForce = -sinh(CalculateXc(weather.FinalSpanLength, weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
+                    double LeftVerticalForce = -MathUtility.Sinh(CalculateXc(weather.FinalSpanLength, weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
                     double LeftTotalTension = Math.Sqrt(Math.Pow(LeftVerticalForce, 2) + Math.Pow(horizontalTension, 2));
 
-                    double RightVerticalForce = -sinh(CalculateXc(weather.FinalSpanLength, -weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
+                    double RightVerticalForce = -MathUtility.Sinh(CalculateXc(weather.FinalSpanLength, -weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
                     double RightTotalTension = Math.Sqrt(Math.Pow(RightVerticalForce, 2) + Math.Pow(horizontalTension, 2));
 
                     double averageTension = (LeftTotalTension + RightTotalTension) / 2 - CalculateFinalLinearForce(weather, wire) * CalculateSag(CatenaryConstantEstimate, weather.FinalSpanLength, weather.FinalElevation) / 2;
@@ -103,12 +104,12 @@ namespace TensionSag.Api.Extensions
 
         public static double CalculateYc(double catenaryConstant, double Xc)
         {
-            return -catenaryConstant * (cosh(-Xc / catenaryConstant) - 1);
+            return -catenaryConstant * (MathUtility.Cosh(-Xc / catenaryConstant) - 1);
         }
 
         public static double CalculateXd(double Xc, double catenaryConstant, double spanElevation, double spanLength)
         {
-            return Xc + catenaryConstant * MathUtility.asinh(spanElevation / spanLength);
+            return Xc + catenaryConstant * MathUtility.Asinh(spanElevation / spanLength);
         }
 
         public static double CalculateXc(double spanLength, double spanElevation, double catenaryConstant)
@@ -121,7 +122,7 @@ namespace TensionSag.Api.Extensions
         public static double CalculateArcLength(double spanLength, double spanElevation, double catenaryConstant)
         {
             double Xc = CalculateXc(spanLength, spanElevation, catenaryConstant);
-            return catenaryConstant * (sinh((spanLength - Xc) / catenaryConstant) + sinh(Xc / catenaryConstant));
+            return catenaryConstant * (MathUtility.Sinh((spanLength - Xc) / catenaryConstant) + MathUtility.Sinh(Xc / catenaryConstant));
         }
 
         //calculates the final weather loaded linear weight of the wire and bundle. does not account for NESC linear constant yet
@@ -142,20 +143,20 @@ namespace TensionSag.Api.Extensions
             double eta = Math.Sqrt(iota) * finalSpanElevation * finalSpanLength * Math.Pow(linearForce, 2d) / (2d * (1d - iota) * Math.Pow(horizontalTension, 3d));
             double mu = Math.Sqrt(iota) * finalSpanElevation * linearForce / ((1d - iota) * Math.Pow(horizontalTension, 2d));
             double nu = linearForce * (Math.Sqrt(1d + (iota * Math.Pow(finalSpanElevation, 2d) * Math.Pow(linearForce, 2d)) / (Math.Pow(1d - iota, 2d) * Math.Pow(horizontalTension, 2d))));
-            double xi = MathUtility.asinh((Math.Sqrt(iota) * finalSpanElevation * linearForce) / ((1d - iota) * horizontalTension)) / linearForce;
+            double xi = MathUtility.Asinh((Math.Sqrt(iota) * finalSpanElevation * linearForce) / ((1d - iota) * horizontalTension)) / linearForce;
             double omikron = linearForce * (-1d * (-kappa - eta - mu) * horizontalTension / nu - xi) / horizontalTension;
             double chi = linearForce * ((-kappa - eta - mu) * horizontalTension / nu + xi) / horizontalTension;
             double arcLength = CalculateArcLength(finalSpanLength, finalSpanElevation, (horizontalTension / linearForce));
 
             double tau = (horizontalTension / linearForce) * (omikron - (linearForce / Math.Pow(horizontalTension, 2d)) *
-                (finalSpanLength / 2d - horizontalTension * xi)) * cosh((linearForce *
+                (finalSpanLength / 2d - horizontalTension * xi)) * MathUtility.Cosh((linearForce *
                 (finalSpanLength / 2d - horizontalTension * xi)) / horizontalTension) +
-                sinh((linearForce * (finalSpanLength / 2d - horizontalTension * xi)) / horizontalTension) / linearForce;
+                MathUtility.Sinh((linearForce * (finalSpanLength / 2d - horizontalTension * xi)) / horizontalTension) / linearForce;
 
             double upsilon = (horizontalTension / linearForce) * (chi - (linearForce / Math.Pow(horizontalTension, 2d)) *
-                (finalSpanLength / 2d + horizontalTension * xi)) * cosh((linearForce *
+                (finalSpanLength / 2d + horizontalTension * xi)) * MathUtility.Cosh((linearForce *
                 (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) +
-                sinh((linearForce * (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) / linearForce;
+                MathUtility.Sinh((linearForce * (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) / linearForce;
 
             return (psi + horizontalTension * beta - arcLength) / (beta - (tau + upsilon));
 
