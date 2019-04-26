@@ -14,8 +14,8 @@ namespace TensionSag.Api.Extensions
         {
             double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
             double StartingWireLength = orginalLength + orginalLength*CreepExtensions.CalculateCreepStrain(creep, wire);
-            double psi = StartingWireLength + wire.ThermalCoefficient * StartingWireLength * (weather.Temperature - wire.StartingTemp) - StartingWireLength;
-            double beta = StartingWireLength / (wire.Elasticity * wire.TotalCrossSection);
+            double psi = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp) - StartingWireLength;
+            double beta = StartingWireLength / (WireExtensions.CalculateWireElasticity(wire) * wire.TotalCrossSection);
 
             double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
             double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate / 2) * Math.Sqrt(lengthEstimate / (6 * lengthEstimate));
@@ -32,14 +32,16 @@ namespace TensionSag.Api.Extensions
         }
 
         //this calculates the 'initial' tension from the stress strain curve.
-        //currently it assumes the user input tension is an initial tension for the original length calculation
+        //vaguely this calculation goes like this: 1)estimate length at design case 2) calculate strain for that length 3) calculate stress for that strain 4) calculate the average tension for that stress
+        //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
-            double horizontalTension;
+            
             double originalLength = WireExtensions.CalculateOriginalLength(wire, creep);
+            double originalLengthDesignTemp = originalLength + WireExtensions.CalculateWireThermalCoefficient(wire) * originalLength * (weather.Temperature - wire.StartingTemp);
 
             //this estimate may need to be improved by actually calculating the elastic arc length at weather condition
-            double lengthEstimate = originalLength + wire.ThermalCoefficient * originalLength * (weather.Temperature - wire.StartingTemp);
+            double lengthEstimate = originalLengthDesignTemp + originalLengthDesignTemp*0.003;
 
             //refactor this so wireStressStrains are not calculated both here and in the wireExtensions
             double wireStressStrainK0 = wire.OuterStressStrainK0 + wire.CoreStressStrainK0;
@@ -51,12 +53,12 @@ namespace TensionSag.Api.Extensions
             double lengthDifference = 100;
             while (Math.Abs(lengthDifference) > 0.0001d )
             {
-                double strain = (lengthEstimate - originalLength) / originalLength;
+                double strain = (lengthEstimate - originalLengthDesignTemp) / originalLengthDesignTemp;
                 double stress = wireStressStrainK0 + wireStressStrainK1 * strain + wireStressStrainK2 * Math.Pow(strain, 2) + wireStressStrainK3 * Math.Pow(strain, 3) + wireStressStrainK4 * Math.Pow(strain, 4);
                 double wireAverageTension = stress * wire.TotalCrossSection;
 
                 double TensionDiff = 1000;
-                horizontalTension = wireAverageTension;
+                double horizontalTension = wireAverageTension;
                 while (Math.Abs(TensionDiff) > 0.001d)
                 {
                     double CatenaryConstantEstimate = horizontalTension / CalculateFinalLinearForce(weather, wire);

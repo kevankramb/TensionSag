@@ -5,7 +5,14 @@ namespace TensionSag.Api.Extensions
 {
     public static class WireExtensions
     {
-        private static readonly double TheConstant = 0.0;
+        public static double CalculateWireElasticity(this Wire wire)
+        {
+            return wire.OuterElasticity + wire.CoreElasticity;
+        }
+        public static double CalculateWireThermalCoefficient(this Wire wire)
+        {
+            return wire.OuterThermalCoefficient*wire.OuterElasticity/(wire.OuterElasticity + wire.CoreElasticity) + wire.CoreThermalCoefficient*wire.CoreElasticity/(wire.OuterElasticity + wire.CoreElasticity);
+        }
 
         public static double CalculateOriginalLength(this Wire wire, Creep creep)
         {
@@ -44,7 +51,7 @@ namespace TensionSag.Api.Extensions
 
         public static double CalculateStringingStrain(this Wire wire, double stress)
         {
-            double strain = 0.01;
+            double strain = 0.001;
 
             // these also get defined in the weather extension when calculating initial tensions, refactor this to only happen in one place
             double wireStressStrainK0 = wire.OuterStressStrainK0 + wire.CoreStressStrainK0;
@@ -63,7 +70,7 @@ namespace TensionSag.Api.Extensions
 
             }
 
-            return strain;
+            return strain/100;
 
         }
 
@@ -72,9 +79,9 @@ namespace TensionSag.Api.Extensions
             double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
             double startingArcLength = WeatherExtensions.CalculateArcLength(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant);
 
-            double stressFreeLength = startingArcLength - wire.StartingTension * startingArcLength / (wire.TotalCrossSection * wire.Elasticity);
+            double stressFreeLength = startingArcLength - wire.StartingTension * startingArcLength / (wire.TotalCrossSection * WireExtensions.CalculateWireElasticity(wire));
             double creepStrain = CreepExtensions.CalculateCreepStrain(creep, wire);
-            return stressFreeLength - stressFreeLength*creepStrain;
+            return (stressFreeLength - stressFreeLength*creepStrain)/100;
 
         }
 

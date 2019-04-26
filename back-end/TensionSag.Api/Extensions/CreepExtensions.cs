@@ -37,12 +37,12 @@ namespace TensionSag.Api.Extensions
 
             }
 
-            double finalCreepStrain = -(stress - wire.Elasticity * strain) / wire.Elasticity;
+            double finalCreepStrain = -(stress - WireExtensions.CalculateWireElasticity(wire) * strain) / WireExtensions.CalculateWireElasticity(wire);
 
-            return finalCreepStrain;
+            return finalCreepStrain/100;
     }
 
-        public static double CalculateStartingStrain(this Creep creep, Wire wire)
+        public static double CalculateStartingStrain(this Wire wire)
         {
             //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
@@ -73,7 +73,7 @@ namespace TensionSag.Api.Extensions
 
             }
 
-            return strain;
+            return strain/100;
         }
 
 

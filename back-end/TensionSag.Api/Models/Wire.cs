@@ -10,8 +10,10 @@ namespace TensionSag.Api.Models
     public double InitialWireLinearWeight { get; }
     public double FinalWireLinearWeight { get; }
     public double MaxRateStrength { get; }
-    public double Elasticity { get; }
-    public double ThermalCoefficient { get; }
+    public double OuterElasticity { get; }
+    public double OuterThermalCoefficient { get; }
+    public double CoreElasticity { get; }
+    public double CoreThermalCoefficient { get; }
     public double OuterStressStrainK0 { get; }
     public double OuterStressStrainK1 { get; }
     public double OuterStressStrainK2 { get; }
@@ -40,6 +42,7 @@ namespace TensionSag.Api.Models
     public WireMaterial Material { get; }
 
     private Wire(string name, double totalCrossSection, double initialWireDiameter, double finalWireDiameter, double initialWireLinearWeight, double finalWireLinearWeight, double elasticity, double thermalCoefficient, 
+        double outerElasticty, double outerThermalCoefficient, double coreElasticity, double coreThermalCoefficient,
         double outerStressStrainK0, double outerStressStrainK1, double outerStressStrainK2, double outerStressStrainK3, double outerStressStrainK4,
         double outerCreepK0, double outerCreepK1, double outerCreepK2, double outerCreepK3, double outerCreepK4,
         double coreStressStrainK0, double coreStressStrainK1, double coreStressStrainK2, double coreStressStrainK3, double coreStressStrainK4,
@@ -52,8 +55,10 @@ namespace TensionSag.Api.Models
       FinalWireDiameter = finalWireDiameter;
       InitialWireLinearWeight = initialWireLinearWeight;
       FinalWireLinearWeight = finalWireLinearWeight;
-      Elasticity = elasticity;
-      ThermalCoefficient = thermalCoefficient;
+      OuterElasticity = outerElasticty;
+      OuterThermalCoefficient = outerThermalCoefficient;
+      CoreElasticity = coreElasticity;
+      CoreThermalCoefficient = coreThermalCoefficient;
       OuterStressStrainK0 = outerStressStrainK0;
       OuterStressStrainK1 = outerStressStrainK1;
       OuterStressStrainK2 = outerStressStrainK2;
@@ -82,19 +87,21 @@ namespace TensionSag.Api.Models
       Material = material;
     }
 
-    public static Wire Create(string name, double totalCrossSection, double initialWireDiameter, double finalWireDiameter, double initialWireLinearWeight, double finalWireLinearWeight, double elasticity, double thermalCoefficient,
+    public static Wire Create(string name, double totalCrossSection, double initialWireDiameter, double finalWireDiameter, double initialWireLinearWeight, double finalWireLinearWeight, 
+        double outerElasticity, double outerThermalCoefficient, double coreElasticity, double coreThermalCoefficient,
         double outerStressStrainK0, double outerStressStrainK1, double outerStressStrainK2, double outerStressStrainK3, double outerStressStrainK4,
         double outerCreepK0, double outerCreepK1, double outerCreepK2, double outerCreepK3, double outerCreepK4,
         double coreStressStrainK0, double coreStressStrainK1, double coreStressStrainK2, double coreStressStrainK3, double coreStressStrainK4,
         double coreCreepK0, double coreCreepK1, double coreCreepK2, double coreCreepK3, double coreCreepK4,
-        double startingTension, double startingTemp, double startingSpanLength, double startingElevation, WireMaterial material)
+        double startingTension, double startingTemp, double startingSpanLength, double startingElevation, bool startingTensionType, WireMaterial material)
     {
-      return new Wire(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, elasticity, thermalCoefficient, 
+      return new Wire(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, 
+          outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient,
           outerStressStrainK0, outerStressStrainK1, outerStressStrainK2, outerStressStrainK3, outerStressStrainK4,
           outerCreepK0, outerCreepK1, outerCreepK2, outerCreepK3, outerCreepK4,
           coreStressStrainK0, coreStressStrainK1, coreStressStrainK2, coreStressStrainK3, coreStressStrainK4,
           coreCreepK0, coreCreepK1, coreCreepK2, coreCreepK3, coreCreepK4,
-          startingTension, startingTemp, startingSpanLength, startingElevation, material);
+          startingTension, startingTemp, startingSpanLength, startingElevation, startingTensionType, material);
     }
 
   }

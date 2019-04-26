@@ -20,7 +20,7 @@ namespace TensionSag.Tests
       var startingTemp = 15;
       var startingSpanLength = 25;
       var startingElevation = 0.0;
-      var material = WireMaterial.Copper;
+      var material = WireMaterial.ACSR;
 
       // Execute
       var wire = Wire.Create(name, totalCrossSection, totalWireLinearWeight, elasticity, thermalCoefficient, startingTension, startingTemp, startingSpanLength, startingElevation, material);
