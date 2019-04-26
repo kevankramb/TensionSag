@@ -4,9 +4,14 @@ namespace TensionSag.Api.Extensions
 {
   public static class CreepExtensions
   {
-    public static double Calculate(this Creep creep)
+    public static double Calculate(this Creep creep, Wire wire)
     {
-      return creep.NumberOne * creep.NumberTwo;
+            double finalcreep = 0;
+
+
+
+
+            return finalcreep;
     }
   }
 }

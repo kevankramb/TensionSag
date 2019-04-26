@@ -27,6 +27,61 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
+        public static double CalculateInitialTensions(this Weather weather, Wire wire)
+        {
+            double horizontalTension;
+            double originalLength = WireExtensions.CalculateOriginalLengthFromInitialTension(wire);
+
+            //this estimate may need to be improved by actually calculating the elastic arc length at weather condition
+            double lengthEstimate = originalLength + wire.ThermalCoefficient * originalLength * (weather.Temperature - wire.StartingTemp);
+
+            //refactor this so wireStressStrains are not calculated both here and in the wireExtensions
+            double wireStressStrainK0 = wire.OuterStressStrainK0 + wire.CoreStressStrainK0;
+            double wireStressStrainK1 = wire.OuterStressStrainK1 + wire.CoreStressStrainK1;
+            double wireStressStrainK2 = wire.OuterStressStrainK2 + wire.CoreStressStrainK2;
+            double wireStressStrainK3 = wire.OuterStressStrainK3 + wire.CoreStressStrainK3;
+            double wireStressStrainK4 = wire.OuterStressStrainK4 + wire.CoreStressStrainK4;
+
+            double lengthDifference = 100;
+            while (Math.Abs(lengthDifference) > 0.0001d )
+            {
+                double strain = (lengthEstimate - originalLength) / originalLength;
+                double stress = (wireStressStrainK0 + wireStressStrainK1 * strain + wireStressStrainK2 * Math.Pow(strain, 2) + wireStressStrainK3 * Math.Pow(strain, 3) + wireStressStrainK4 * Math.Pow(strain, 4);
+                double wireAverageTension = stress * wire.TotalCrossSection;
+
+                double TensionDiff = 1000;
+                horizontalTension = wireAverageTension;
+                while (Math.Abs(TensionDiff) > 0.001d)
+                {
+                    double CatenaryConstantEstimate = horizontalTension / CalculateFinalLinearForce(weather, wire);
+                    //refactor this average tension calculation to be a single function that is used here and in the wireExtension
+                    double LeftVerticalForce = -sinh(CalculateXc(weather.FinalSpanLength, weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
+                    double LeftTotalTension = Math.Sqrt(Math.Pow(LeftVerticalForce, 2) + Math.Pow(horizontalTension, 2));
+
+                    double RightVerticalForce = -sinh(CalculateXc(weather.FinalSpanLength, -weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
+                    double RightTotalTension = Math.Sqrt(Math.Pow(RightVerticalForce, 2) + Math.Pow(horizontalTension, 2));
+
+                    double averageTension = (LeftTotalTension + RightTotalTension) / 2 - CalculateFinalLinearForce(weather, wire) * CalculateSag(CatenaryConstantEstimate, weather.FinalSpanLength, weather.FinalElevation) / 2;
+
+                    //this may not work, for large spans or low tension wires, horizontal tension and average tension maybe inversely related.
+                    TensionDiff = averageTension - wireAverageTension;
+                    horizontalTension = horizontalTension - TensionDiff;
+
+                }
+
+                double wireLength = CalculateArcLength(weather.FinalSpanLength, weather.FinalElevation, horizontalTension / CalculateFinalLinearForce(weather, wire));
+
+                lengthDifference = wireLength - lengthEstimate;
+
+                lengthEstimate = wireLength;
+
+            }
+
+            double stressStrainTension = horizontalTension;
+
+            return stressStrainTension;
+        }
+
         public static double CalculateSag(double catenaryConstant, double spanLength, double spanElevation)
         {
             double XcForSag = CalculateXc(spanLength, spanElevation, catenaryConstant);
@@ -94,7 +149,6 @@ namespace TensionSag.Api.Extensions
                 (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) +
                 sinh((linearForce * (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) / linearForce;
 
-        //this is the actual newton-raphson equation used to solve for our final tension, eq 90 in the documentation
             return (psi + horizontalTension * beta - arcLength) / (beta - (tau + upsilon));
 
         }
