@@ -15,11 +15,12 @@ namespace TensionSag.Tests
             WireFactory = wireFactory;
         }
 
+        public static readonly int SigFigs = 6;
+
         [Fact]
         public void ValidWireModel_Success()
         {
             // Setup
-            var expectedResult = 0.0;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -57,7 +58,7 @@ namespace TensionSag.Tests
         public void CalculateOriginalLength_Success()
         {
             // Setup
-            var expectedLength = 0.0;
+            var expectedLength = 49.9517734053087;
             var wire = WireFactory.Create();
             var creepRTSPercent = 30;
             var creep = new Creep(creepRTSPercent);
@@ -66,7 +67,37 @@ namespace TensionSag.Tests
             var actualLength = wire.CalculateOriginalLength(creep);
 
             // Assert
-            Assert.Equal(expectedLength, actualLength);
+            Assert.Equal(expectedLength, actualLength, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateWireThermalCoefficient_Success()
+        {
+            // Setup
+            var expectedLength = 1.88197993595359E-05;
+            var wire = WireFactory.Create();
+
+            // Execute
+            var actualLength = wire.CalculateWireThermalCoefficient();
+
+            // Assert
+            Assert.Equal(expectedLength, actualLength, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateStringingStrain_Success()
+        {
+            // Setup
+            var expectedLength = 0.00101685891255513;
+            var wire = WireFactory.Create();
+            var stress = wire.StartingTension/wire.TotalCrossSection;
+ 
+
+            // Execute
+            var actualLength = wire.CalculateStringingStrain(stress);
+
+            // Assert
+            Assert.Equal(expectedLength, actualLength, SigFigs);
         }
     }
 }

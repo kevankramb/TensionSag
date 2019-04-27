@@ -6,13 +6,22 @@ using System.Collections.Generic;
 
 namespace TensionSag.Tests
 {
-    public class WeatherTests
+    public class WeatherTests : IClassFixture<WireFactory>
     {
+        private WireFactory WireFactory;
+
+        public WeatherTests (WireFactory wireFactory)
+        {
+            WireFactory = wireFactory;
+        }
+
+        public static readonly int SigFigs = 6;
+
         [Fact]
         public void CalculateInitialTension_Success()
         {
             // Setup
-            var expectedResult = 0.0;
+            var expectedResult = 29124.6799744816;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -32,13 +41,13 @@ namespace TensionSag.Tests
             var startingTemp = 15;
             var startingSpanLength = 50;
             var startingElevation = 0.0;
-            var startingTensionType = false;
+            var startingTensionType = true;
             var material = WireMaterial.ACSR;
             var wire = Wire.Create(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, maxRatedStrength,
                 outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient,
                 outerStressStrainList, outerCreepList, coreStressStrainList, coreCreepList,
                 startingTension, startingTemp, startingSpanLength, startingElevation, startingTensionType, material);
-            var temperature = 15.0;
+            var temperature = 0.0;
             var iceRadius = 0.0;
             var windPressure = 0.0;
             var finalSpanLength = startingSpanLength;
@@ -51,14 +60,14 @@ namespace TensionSag.Tests
             var tension = WeatherExtensions.CalculateInitialTensions(weather, wire, creep);
 
             // Assert
-            Assert.Equal(expectedResult, tension);
+            Assert.Equal(expectedResult, tension, SigFigs);
         }
 
         [Fact]
         public void CalculateElasticTension_Success()
         {
             // Setup
-            var expectedResult = 0.0;
+            var expectedResult = 27089.0051431164;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -78,13 +87,13 @@ namespace TensionSag.Tests
             var startingTemp = 15;
             var startingSpanLength = 50;
             var startingElevation = 0.0;
-            var startingTensionType = false;
+            var startingTensionType = true;
             var material = WireMaterial.ACSR;
             var wire = Wire.Create(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, maxRatedStrength,
                 outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient,
                 outerStressStrainList, outerCreepList, coreStressStrainList, coreCreepList,
                 startingTension, startingTemp, startingSpanLength, startingElevation, startingTensionType, material);
-            var temperature = 15.0;
+            var temperature = 0.0;
             var iceRadius = 0.0;
             var windPressure = 0.0;
             var finalSpanLength = startingSpanLength;
@@ -97,35 +106,107 @@ namespace TensionSag.Tests
             var tension = WeatherExtensions.CalculateElasticTension(weather, wire, creep);
 
             // Assert
-            Assert.Equal(expectedResult, tension);
+            Assert.Equal(expectedResult, tension, SigFigs);
         }
 
-        //[Fact]
-        //public void CalculateSag_Success()
-        //{
-        //    // Setup
-        //    var expectedResult = 0.0;
-        //    var name = "Sag Wire Test";
-        //    var totalCrossSection = 15.0;
-        //    var totalWireLinearWeight = 15.0;
-        //    var elasticity = 1.0;
-        //    var thermalCoefficient = 4.0;
-        //    var startingTension = 500.0;
-        //    var startingTemp = 15;
-        //    var startingSpanLength = 25;
-        //    var startingElevation = 0.0;
-        //    var material = WireMaterial.ACSR;
-        //    var wire = Wire.Create(name, totalCrossSection, totalWireLinearWeight, elasticity, thermalCoefficient, startingTension, startingTemp, startingSpanLength, startingElevation, material);
-        //    var temperature = 25.0;
-        //    var iceRadius = 2.0;
-        //    var windPressure = 3.0;
-        //    var weather = new Weather(temperature, iceRadius, windPressure);
+        [Fact]
+        public void CalculateSag_Success()
+        {
+            // Setup
+            var expectedResult = 0.223220217279341;
+            var catenaryConstant = 1400.0;
+            var spanLength = 50;
+            var spanElevation = 0.0;
+        
+            // Execute
+            var sag = WeatherExtensions.CalculateSag(catenaryConstant, spanLength, spanElevation);
 
-        //    // Execute
-        //    var tension = weather.CalculateSag(wire);
+            // Assert
+            Assert.Equal(expectedResult, sag, SigFigs);
+        }
 
-        //    // Assert
-        //    Assert.Equal(expectedResult, tension);
-        //}
+        [Fact]
+        public void CalculateXc_Success()
+        {
+            // Setup
+            var expectedResult = 25;
+            var catenaryConstant = 1400.0;
+            var spanLength = 50;
+            var spanElevation = 0.0;
+
+            // Execute
+            var Xc = WeatherExtensions.CalculateXc(spanLength, spanElevation, catenaryConstant);
+
+            // Assert
+            Assert.Equal(expectedResult, Xc, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateYc_Success()
+        {
+            // Setup
+            var expectedResult = -0.223220217279341;
+            var catenaryConstant = 1400.0;
+            var Xc = 25;
+
+            // Execute
+            var Yc = WeatherExtensions.CalculateYc(catenaryConstant, Xc);
+
+            // Assert
+            Assert.Equal(expectedResult, Yc, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateXd_Success()
+        {
+            // Setup
+            var expectedResult = 25;
+            var catenaryConstant = 1400.0;
+            var Xc = 25;
+            var spanLength = 50;
+            var spanElevation = 0.0;
+
+            // Execute
+            var Xd = WeatherExtensions.CalculateXd(Xc, catenaryConstant, spanElevation, spanLength);
+
+            // Assert
+            Assert.Equal(expectedResult, Xd, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateArcLength_Success()
+        {
+            // Setup
+            var expectedResult = 50.0026573552933;
+            var catenaryConstant = 1400.0;
+            var spanLength = 50;
+            var spanElevation = 0.0;
+
+            // Execute
+            var ArcLength = WeatherExtensions.CalculateArcLength(spanLength, spanElevation, catenaryConstant);
+
+            // Assert
+            Assert.Equal(expectedResult, ArcLength, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateFinalLinearForce_Success()
+        {
+            // Setup
+            var expectedResult = 43.5274780001651;
+            var wire = WireFactory.Create();
+            var temperature = 0.0;
+            var iceRadius = 0.02;
+            var windPressure = 200.0;
+            var finalSpanLength = 50;
+            var finalElevation = 0;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+
+            // Execute
+            var linearForce = WeatherExtensions.CalculateFinalLinearForce(weather, wire);
+
+            // Assert
+            Assert.Equal(expectedResult, linearForce, SigFigs);
+        }
     }
 }
