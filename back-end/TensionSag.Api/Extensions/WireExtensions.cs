@@ -69,6 +69,7 @@ namespace TensionSag.Api.Extensions
                 strainPercent = (strainPercent - difference);
             }
 
+            //the stress strain curves all compare stress and strain percent. for our engineering calculations we need stain in unit length, so divide by 100 before returning the strain.
             return strainPercent / 100;
 
         }

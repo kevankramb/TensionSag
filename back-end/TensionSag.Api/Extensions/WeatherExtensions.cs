@@ -9,7 +9,8 @@ namespace TensionSag.Api.Extensions
         private static readonly double Gravity = 9.80665;
 
         //this calculates the final elastic tension
-        //currently does not account for plastic elongation that is not already present at the reference tension
+        //the calculation assumes all plastic elongation has occured prior to the weather condition 
+        //long term plastic elongation (creep) is assumed to be the controlling plastic elongation, future work needs to be done to calculate the maximum plastic strain due to high tension and then force this calculation to use the higher of the two.
         public static double CalculateElasticTension(this Weather weather, Wire wire, Creep creep)
         {
             double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
@@ -31,7 +32,7 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
-        //this calculates the 'initial' tension from the stress strain curve.
+        //this calculates the 'initial' tension from the stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
         //vaguely this calculation goes like this: 1)estimate length at design case 2) calculate strain for that length 3) calculate stress for that strain 4) calculate the average tension for that stress
         //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
@@ -84,7 +85,7 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
-        //calculates sag for any wire geometry
+        //calculates sag for any wire geometry. sag is defined as the largest separation between the wire geometry and the straight line between attachment points.
         public static double CalculateSag(double catenaryConstant, double spanLength, double spanElevation)
         {
             double XcForSag = CalculateXc(spanLength, spanElevation, catenaryConstant);
@@ -99,16 +100,19 @@ namespace TensionSag.Api.Extensions
             return sag;
         }
 
+        //this is the y coordinate of the lowest point in the catenary curve. it should always be negative but for uplift conditions maybe behind the current structure.
         public static double CalculateYc(double catenaryConstant, double Xc)
         {
             return -catenaryConstant * (MathUtility.Cosh(-Xc / catenaryConstant) - 1);
         }
 
+        //this is the distance to the sag point, notably not the same as Xc for spans with uneven elevations.
         public static double CalculateXd(double Xc, double catenaryConstant, double spanElevation, double spanLength)
         {
             return Xc + catenaryConstant * MathUtility.Asinh(spanElevation / spanLength);
         }
 
+        //this is the x coordinate for the lowest point in the catenary geometry of the wire. for uplift conditions it is negative.
         public static double CalculateXc(double spanLength, double spanElevation, double catenaryConstant)
         {
             double tempZVar = spanElevation * (Math.Sqrt(Math.Exp(spanLength / catenaryConstant))) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
