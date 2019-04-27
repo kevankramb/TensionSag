@@ -13,17 +13,17 @@ namespace TensionSag.Api.Extensions
         public static double CalculateElasticTension(this Weather weather, Wire wire, Creep creep)
         {
             double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
-            double StartingWireLength = orginalLength + orginalLength*CreepExtensions.CalculateCreepStrain(creep, wire);
-            double psi = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp) - StartingWireLength;
+            double StartingWireLength = orginalLength + orginalLength * CreepExtensions.CalculateCreepStrain(creep, wire);
+            double psi = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp);
             double beta = StartingWireLength / (WireExtensions.CalculateWireElasticity(wire) * wire.TotalCrossSection);
 
             double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
-            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate / 2) * Math.Sqrt(lengthEstimate / (6 * lengthEstimate));
+            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) /( 8 * Math.Sqrt(3*lengthEstimate*(Math.Abs(StartingWireLength- lengthEstimate)) / 8 ));
 
             double difference = 100;
-            while (Math.Abs(difference) > 0.001d )
+            while (Math.Abs(difference) > 0.001d)
             {
-                difference = SolveForDifference(horizontalTension, wire.StartingSpanLength, CalculateFinalLinearForce(weather, wire), wire.StartingElevation, psi, beta);
+                difference = SolveForDifference(horizontalTension, weather.FinalSpanLength, CalculateFinalLinearForce(weather, wire), weather.FinalElevation, psi, beta);
                 horizontalTension = (horizontalTension - difference);
 
             }
@@ -36,29 +36,29 @@ namespace TensionSag.Api.Extensions
         //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
-            
-            double originalLength = WireExtensions.CalculateOriginalLength(wire, creep);
+            double horizontalTension = 0;
+            double originalLength = wire.CalculateOriginalLength(creep);
             double originalLengthDesignTemp = originalLength + WireExtensions.CalculateWireThermalCoefficient(wire) * originalLength * (weather.Temperature - wire.StartingTemp);
 
             //this estimate may need to be improved by actually calculating the elastic arc length at weather condition
-            double lengthEstimate = originalLengthDesignTemp + originalLengthDesignTemp*0.003;
+            double lengthEstimate = originalLengthDesignTemp + originalLengthDesignTemp * 0.003;
 
             //refactor this so wireStressStrains are not calculated both here and in the wireExtensions
-            double wireStressStrainK0 = wire.OuterStressStrainK0 + wire.CoreStressStrainK0;
-            double wireStressStrainK1 = wire.OuterStressStrainK1 + wire.CoreStressStrainK1;
-            double wireStressStrainK2 = wire.OuterStressStrainK2 + wire.CoreStressStrainK2;
-            double wireStressStrainK3 = wire.OuterStressStrainK3 + wire.CoreStressStrainK3;
-            double wireStressStrainK4 = wire.OuterStressStrainK4 + wire.CoreStressStrainK4;
+            double wireStressStrainK0 = wire.OuterStressStrainList[0] + wire.CoreStressStrainList[0];
+            double wireStressStrainK1 = wire.OuterStressStrainList[1] + wire.CoreStressStrainList[1];
+            double wireStressStrainK2 = wire.OuterStressStrainList[2] + wire.CoreStressStrainList[2];
+            double wireStressStrainK3 = wire.OuterStressStrainList[3] + wire.CoreStressStrainList[3];
+            double wireStressStrainK4 = wire.OuterStressStrainList[4] + wire.CoreStressStrainList[4];
 
             double lengthDifference = 100;
-            while (Math.Abs(lengthDifference) > 0.0001d )
+            while (Math.Abs(lengthDifference) > 0.0001d)
             {
-                double strain = (lengthEstimate - originalLengthDesignTemp) / originalLengthDesignTemp;
-                double stress = wireStressStrainK0 + wireStressStrainK1 * strain + wireStressStrainK2 * Math.Pow(strain, 2) + wireStressStrainK3 * Math.Pow(strain, 3) + wireStressStrainK4 * Math.Pow(strain, 4);
+                double strainPercent = ((lengthEstimate - originalLengthDesignTemp) / originalLengthDesignTemp)*100;
+                double stress = wireStressStrainK0 + wireStressStrainK1 * strainPercent + wireStressStrainK2 * Math.Pow(strainPercent, 2) + wireStressStrainK3 * Math.Pow(strainPercent, 3) + wireStressStrainK4 * Math.Pow(strainPercent, 4);
                 double wireAverageTension = stress * wire.TotalCrossSection;
 
                 double TensionDiff = 1000;
-                double horizontalTension = wireAverageTension;
+                horizontalTension = wireAverageTension;
                 while (Math.Abs(TensionDiff) > 0.001d)
                 {
                     double CatenaryConstantEstimate = horizontalTension / CalculateFinalLinearForce(weather, wire);
@@ -78,16 +78,10 @@ namespace TensionSag.Api.Extensions
                 }
 
                 double wireLength = CalculateArcLength(weather.FinalSpanLength, weather.FinalElevation, horizontalTension / CalculateFinalLinearForce(weather, wire));
-
                 lengthDifference = wireLength - lengthEstimate;
-
                 lengthEstimate = wireLength;
-
             }
-
-            double stressStrainTension = horizontalTension;
-
-            return stressStrainTension;
+            return horizontalTension;
         }
 
         //calculates sag for any wire geometry
@@ -117,8 +111,8 @@ namespace TensionSag.Api.Extensions
 
         public static double CalculateXc(double spanLength, double spanElevation, double catenaryConstant)
         {
-            double tempZVar = spanElevation * (Math.Pow(Math.Exp(spanLength / catenaryConstant), 0.5d)) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
-            return spanLength / 2.0d + catenaryConstant * Math.Log(tempZVar + Math.Pow(1 + Math.Pow(tempZVar, 2), 0.5d));
+            double tempZVar = spanElevation * (Math.Sqrt(Math.Exp(spanLength / catenaryConstant))) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
+            return spanLength / 2.0d + catenaryConstant * Math.Log(tempZVar + Math.Sqrt(1 + tempZVar * tempZVar));
         }
 
         //calculates the total hanging wire length between attachment points

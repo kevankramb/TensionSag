@@ -1,25 +1,14 @@
-using System;
 using TensionSag.Api.Models;
-using TensionSag.Api.Extensions;
-using Xunit;
 using System.Collections.Generic;
 
 namespace TensionSag.Tests
 {
-    public class WireModelTests : IClassFixture<WireFactory>
+    public class WireFactory
     {
-        private WireFactory WireFactory;
+        public WireFactory() { }
 
-        public WireModelTests(WireFactory wireFactory)
+        public Wire Create()
         {
-            WireFactory = wireFactory;
-        }
-
-        [Fact]
-        public void ValidWireModel_Success()
-        {
-            // Setup
-            var expectedResult = 0.0;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -36,37 +25,16 @@ namespace TensionSag.Tests
             var coreStressStrainList = new List<double> { -477806.7, 2.66338e8, 27565929.1, -3.1518e8, 1.92309e8 };
             var coreCreepList = new List<double> { 324743.1, 249668124.8, 84125691.63, -4.99125e8, 3.19489e8 };
             var startingTension = 22500.0;
-            var startingTemp = 15.0;
-            var startingSpanLength = 50.0;
+            var startingTemp = 15;
+            var startingSpanLength = 50;
             var startingElevation = 0.0;
             var startingTensionType = true;
             var material = WireMaterial.ACSR;
-
-            // Execute
             var wire = Wire.Create(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, maxRatedStrength,
-                outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient, 
+                outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient,
                 outerStressStrainList, outerCreepList, coreStressStrainList, coreCreepList,
                 startingTension, startingTemp, startingSpanLength, startingElevation, startingTensionType, material);
-
-            // Assert
-            Assert.IsType<Wire>(wire);
-            Assert.Equal(name, wire.Name);
-        }
-
-        [Fact]
-        public void CalculateOriginalLength_Success()
-        {
-            // Setup
-            var expectedLength = 0.0;
-            var wire = WireFactory.Create();
-            var creepRTSPercent = 30;
-            var creep = new Creep(creepRTSPercent);
-
-            // Execute
-            var actualLength = wire.CalculateOriginalLength(creep);
-
-            // Assert
-            Assert.Equal(expectedLength, actualLength);
+            return wire;
         }
     }
 }
