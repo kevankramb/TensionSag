@@ -1,34 +1,35 @@
-//using System;
-//using TensionSag.Api.Models;
-//using TensionSag.Api.Extensions;
-//using Xunit;
+using System;
+using TensionSag.Api.Models;
+using TensionSag.Api.Extensions;
+using Xunit;
 
-//namespace TensionSag.Tests
-//{
-//    public class CreepModelTests
-//    {
-//        [Fact]
-//        public void ValidCreepModel_Success()
-//        {
-//            // Setup and Execute
-//            var creep = new Creep(1.0);
+namespace TensionSag.Tests
+{
+    public class CreepModelTests : IClassFixture<WireFactory>
+    {
+        private WireFactory WireFactory;
 
-//            // Assert
-//            Assert.IsType<Creep>(creep);
-//        }
+        public CreepModelTests(WireFactory wireFactory)
+        {
+            WireFactory = wireFactory;
+        }
 
-//        [Fact]
-//        public void PerformCalculate_Success()
-//        {
-//            // Setup
-//            var expectedResult = 25.0;
-//            var creep = new Creep(1.0);
+        public static readonly int SigFigs = 6;
 
-//            // Execute
-//            var result = creep.Calculate();
+        [Fact]
+        public void CalculateCreepStrain_Success()
+        {
+            // Setup
+            var expectedResult = 0.000827141144670066;
+            var wire = WireFactory.Create();
+            var creepRTSPercent = 20;
+            var creep = new Creep(creepRTSPercent);
 
-//            // Assert
-//            Assert.Equal(expectedResult, result);
-//        }
-//    }
-//}
+            // Execute
+            var result = creep.CalculateCreepStrain(wire);
+
+            // Assert
+            Assert.Equal(expectedResult, result, SigFigs);
+        }
+    }
+}
