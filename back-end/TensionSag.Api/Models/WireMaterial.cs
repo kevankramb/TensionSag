@@ -1,7 +1,7 @@
 namespace TensionSag.Api.Models
 {
-  public enum WireMaterial
-  {
-    Copper = 0
-  }
+    public enum WireMaterial
+    {
+        ACSR = 0
+    }
 }

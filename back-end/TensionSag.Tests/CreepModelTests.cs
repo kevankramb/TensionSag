@@ -5,30 +5,31 @@ using Xunit;
 
 namespace TensionSag.Tests
 {
-  public class CreepModelTests
-  {
-    [Fact]
-    public void ValidCreepModel_Success()
+    public class CreepModelTests : IClassFixture<WireFactory>
     {
-      // Setup and Execute
-      var creep = new Creep(1.0, 25.0);
+        private WireFactory WireFactory;
 
-      // Assert
-      Assert.IsType<Creep>(creep);
+        public CreepModelTests(WireFactory wireFactory)
+        {
+            WireFactory = wireFactory;
+        }
+
+        public static readonly int SigFigs = 6;
+
+        [Fact]
+        public void CalculateCreepStrain_Success()
+        {
+            // Setup
+            var expectedResult = 0.000827141144670066;
+            var wire = WireFactory.Create();
+            var creepRTSPercent = 20;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var result = creep.CalculateCreepStrain(wire);
+
+            // Assert
+            Assert.Equal(expectedResult, result, SigFigs);
+        }
     }
-
-    [Fact]
-    public void PerformCalculate_Success()
-    {
-      // Setup
-      var expectedResult = 25.0;
-      var creep = new Creep(1.0, 25.0);
-
-      // Execute
-      var result = creep.Calculate();
-
-      // Assert
-      Assert.Equal(expectedResult, result);
-    }
-  }
 }

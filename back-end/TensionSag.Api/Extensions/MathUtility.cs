@@ -8,12 +8,12 @@ namespace TensionSag.Api.Extensions
     {
         public static double Sinh(double x)
         {
-            return (Math.Exp(x) - Math.Exp(x)) / 2;
+            return (Math.Exp(x) - Math.Exp(-x)) / 2;
         }
 
         public static double Cosh(double x)
         {
-            return (Math.Exp(x) + Math.Exp(x)) / 2;
+            return (Math.Exp(x) + Math.Exp(-x)) / 2;
         }
 
         public static double Asinh(double x)
