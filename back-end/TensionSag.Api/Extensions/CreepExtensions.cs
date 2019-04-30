@@ -39,6 +39,7 @@ namespace TensionSag.Api.Extensions
 
             double finalCreepStrainPercent = -(stress - WireExtensions.CalculateWireElasticity(wire) * strainPercent) / WireExtensions.CalculateWireElasticity(wire);
 
+            //the stress strain curves all compare stress and strain percent. for our engineering calculations we need stain in unit length, so divide by 100 before returning the strain.
             return finalCreepStrainPercent / 100;
         }
 
@@ -73,6 +74,7 @@ namespace TensionSag.Api.Extensions
 
             }
 
+            //the stress strain curves all compare stress and strain percent. for our engineering calculations we need stain in unit length, so divide by 100 before returning the strain.
             return strainPercent / 100;
         }
 
