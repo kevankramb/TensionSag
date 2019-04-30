@@ -35,14 +35,16 @@ namespace TensionSag.Api.Extensions
         //this calculates the 'initial' tension from the stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
         //vaguely this calculation goes like this: 1)estimate length at design case 2) calculate strain for that length 3) calculate stress for that strain 4) calculate the average tension for that stress
         //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
+        //there is currently an issue with this where for my 556 all aluminum conductor at low tensions the length from the geomtry calculation is shorter than the original length, leading to a zero strain on the next cycle
+        //I suspect this is due to some kind of scenario where the wire geometry doesn't make sense and the underlying equations (geometric length vs tension and stress vs strain do not have a common intersection tension to converge to)
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
-            double horizontalTension = 0;
+            
             double originalLength = wire.CalculateOriginalLength(creep);
             double originalLengthDesignTemp = originalLength + WireExtensions.CalculateWireThermalCoefficient(wire) * originalLength * (weather.Temperature - wire.StartingTemp);
 
-            //this estimate may need to be improved by actually calculating the elastic arc length at weather condition
-            double lengthEstimate = originalLengthDesignTemp + originalLengthDesignTemp * 0.003;
+            double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
+            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) / (8 * Math.Sqrt(3 * lengthEstimate * (Math.Abs(originalLengthDesignTemp - lengthEstimate)) / 8));
 
             //refactor this so wireStressStrains are not calculated both here and in the wireExtensions
             double wireStressStrainK0 = wire.OuterStressStrainList[0] + wire.CoreStressStrainList[0];
@@ -51,37 +53,28 @@ namespace TensionSag.Api.Extensions
             double wireStressStrainK3 = wire.OuterStressStrainList[3] + wire.CoreStressStrainList[3];
             double wireStressStrainK4 = wire.OuterStressStrainList[4] + wire.CoreStressStrainList[4];
 
-            double lengthDifference = 100;
-            while (Math.Abs(lengthDifference) > 0.0001d)
+            double NewtonDiff = 1000;
+            while (Math.Abs(NewtonDiff) > 0.001d)
             {
-                double strainPercent = ((lengthEstimate - originalLengthDesignTemp) / originalLengthDesignTemp)*100;
-                double stress = wireStressStrainK0 + wireStressStrainK1 * strainPercent + wireStressStrainK2 * Math.Pow(strainPercent, 2) + wireStressStrainK3 * Math.Pow(strainPercent, 3) + wireStressStrainK4 * Math.Pow(strainPercent, 4);
-                double wireAverageTension = stress * wire.TotalCrossSection;
+                //standard newton raphson where f(x)=stress-strain equation with x (strain) substituted for (arclength-oglength)/oglength*100. newton raphson to solve for horizontal tension
+                double arcLength = CalculateArcLength(weather.FinalSpanLength, weather.FinalElevation, horizontalTension / CalculateFinalLinearForce(weather, wire));
+                double arcLengthPrime = CalculateArcLengthPrime(horizontalTension, weather.FinalSpanLength, CalculateFinalLinearForce(weather, wire), weather.FinalElevation);
 
-                double TensionDiff = 1000;
-                horizontalTension = wireAverageTension;
-                while (Math.Abs(TensionDiff) > 0.001d)
-                {
-                    double CatenaryConstantEstimate = horizontalTension / CalculateFinalLinearForce(weather, wire);
-                    //refactor this average tension calculation to be a single function that is used here and in the wireExtension
-                    double LeftVerticalForce = -MathUtility.Sinh(CalculateXc(weather.FinalSpanLength, weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
-                    double LeftTotalTension = Math.Sqrt(Math.Pow(LeftVerticalForce, 2) + Math.Pow(horizontalTension, 2));
+                double function = -horizontalTension / wire.TotalCrossSection + wireStressStrainK0 + wireStressStrainK1 * (arcLength / originalLengthDesignTemp - 1) * 100 +
+                    wireStressStrainK2 * (10000 * Math.Pow(arcLength, 2) / Math.Pow(originalLengthDesignTemp, 2) - 20000 * arcLength / originalLengthDesignTemp + 10000) +
+                    wireStressStrainK3 * (1000000 * Math.Pow(arcLength, 3) / Math.Pow(originalLengthDesignTemp, 3) - 3000000 * Math.Pow(arcLength, 2) / Math.Pow(originalLengthDesignTemp, 2) + 3000000 * arcLength / originalLengthDesignTemp - 1000000) +
+                    wireStressStrainK4 * (100000000 * Math.Pow(arcLength, 4) / Math.Pow(originalLengthDesignTemp, 4) - 400000000 * Math.Pow(arcLength, 3) / Math.Pow(originalLengthDesignTemp, 3) + 600000000 * Math.Pow(arcLength, 2) / Math.Pow(originalLengthDesignTemp, 2) - 400000000 * arcLength / originalLengthDesignTemp + 100000000);
 
-                    double RightVerticalForce = -MathUtility.Sinh(CalculateXc(weather.FinalSpanLength, -weather.FinalElevation, CatenaryConstantEstimate) / CatenaryConstantEstimate) * horizontalTension;
-                    double RightTotalTension = Math.Sqrt(Math.Pow(RightVerticalForce, 2) + Math.Pow(horizontalTension, 2));
+                double functionPrime = -1/wire.TotalCrossSection + wireStressStrainK1 * arcLengthPrime/originalLengthDesignTemp*100 + 
+                    wireStressStrainK2 * (10000 * 2 * arcLength * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 2) - 20000 * arcLengthPrime / originalLengthDesignTemp ) +
+                    wireStressStrainK3 * (1000000 * 3 * Math.Pow(arcLength, 2) * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 3) - 3000000 * 2 * arcLength * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 2) + 3000000 * arcLengthPrime / originalLengthDesignTemp ) +
+                    wireStressStrainK4 * (100000000 * 4 * Math.Pow(arcLength, 3) * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 4) - 400000000 * 3 * Math.Pow(arcLength, 2) * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 3) + 600000000 * 2 * arcLength * arcLengthPrime / Math.Pow(originalLengthDesignTemp, 2) - 400000000 * arcLengthPrime / originalLengthDesignTemp );
 
-                    double averageTension = (LeftTotalTension + RightTotalTension) / 2 - CalculateFinalLinearForce(weather, wire) * CalculateSag(CatenaryConstantEstimate, weather.FinalSpanLength, weather.FinalElevation) / 2;
+                NewtonDiff = function / functionPrime;
+                horizontalTension = horizontalTension - NewtonDiff;
 
-                    //this may not work, for large spans or low tension wires, horizontal tension and average tension maybe inversely related.
-                    TensionDiff = averageTension - wireAverageTension;
-                    horizontalTension = horizontalTension - TensionDiff;
-
-                }
-
-                double wireLength = CalculateArcLength(weather.FinalSpanLength, weather.FinalElevation, horizontalTension / CalculateFinalLinearForce(weather, wire));
-                lengthDifference = wireLength - lengthEstimate;
-                lengthEstimate = wireLength;
             }
+
             return horizontalTension;
         }
 
@@ -138,7 +131,16 @@ namespace TensionSag.Api.Extensions
         //newton raphson method junk for the elastic tension calculation. this basically follows the numerical tension method but very accurately accounts for changes in elevation
         public static double SolveForDifference(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation, double psi, double beta)
         {
+            double arcLengthPrime = CalculateArcLengthPrime(horizontalTension, finalSpanLength, linearForce, finalSpanLength);
 
+            double arcLength = CalculateArcLength(finalSpanLength, finalSpanElevation, (horizontalTension / linearForce));
+
+            return (psi + horizontalTension * beta - arcLength) / (beta - (arcLengthPrime));
+
+        }
+
+        public static double CalculateArcLengthPrime(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation)
+        {
             double iota = Math.Exp(finalSpanLength * linearForce / horizontalTension);
             double kappa = Math.Pow(iota, 1.5d) * finalSpanElevation * finalSpanLength * Math.Pow(linearForce, 2d) / (Math.Pow(1d - iota, 2d) * Math.Pow(horizontalTension, 3d));
             double eta = Math.Sqrt(iota) * finalSpanElevation * finalSpanLength * Math.Pow(linearForce, 2d) / (2d * (1d - iota) * Math.Pow(horizontalTension, 3d));
@@ -147,7 +149,6 @@ namespace TensionSag.Api.Extensions
             double xi = MathUtility.Asinh((Math.Sqrt(iota) * finalSpanElevation * linearForce) / ((1d - iota) * horizontalTension)) / linearForce;
             double omikron = linearForce * (-1d * (-kappa - eta - mu) * horizontalTension / nu - xi) / horizontalTension;
             double chi = linearForce * ((-kappa - eta - mu) * horizontalTension / nu + xi) / horizontalTension;
-            double arcLength = CalculateArcLength(finalSpanLength, finalSpanElevation, (horizontalTension / linearForce));
 
             double tau = (horizontalTension / linearForce) * (omikron - (linearForce / Math.Pow(horizontalTension, 2d)) *
                 (finalSpanLength / 2d - horizontalTension * xi)) * MathUtility.Cosh((linearForce *
@@ -159,8 +160,7 @@ namespace TensionSag.Api.Extensions
                 (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) +
                 MathUtility.Sinh((linearForce * (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) / linearForce;
 
-            return (psi + horizontalTension * beta - arcLength) / (beta - (tau + upsilon));
-
+            return (tau + upsilon);
         }
 
     }

@@ -21,7 +21,7 @@ namespace TensionSag.Tests
         public void CalculateInitialTension_Success()
         {
             // Setup
-            var expectedResult = 29124.6799744816;
+            var expectedResult = 29066.4212528342;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -67,7 +67,7 @@ namespace TensionSag.Tests
         public void CalculateElasticTension_Success()
         {
             // Setup
-            var expectedResult = 27089.0051431164;
+            var expectedResult = 27057.9633822329;
             var name = "Tension Wire Test Drake 795";
             var totalCrossSection = 0.00046844;
             var initialWireDiameter = 0.0281432;
@@ -194,7 +194,7 @@ namespace TensionSag.Tests
         {
             // Setup
             var expectedResult = 43.5274780001651;
-            var wire = WireFactory.Create();
+            var wire = WireFactory.Create(795);
             var temperature = 0.0;
             var iceRadius = 0.02;
             var windPressure = 200.0;
@@ -207,6 +207,72 @@ namespace TensionSag.Tests
 
             // Assert
             Assert.Equal(expectedResult, linearForce, SigFigs);
+        }
+
+        [Fact]
+        public void Calculate556InitialWireTest_Success()
+        {
+            // Setup
+            var expectedResult = 3542.03457045459;
+            var wire = WireFactory.Create(556);
+            var temperature = 0.0;
+            var iceRadius = 0.0;
+            var windPressure = 0.0;
+            var finalSpanLength = 50;
+            var finalElevation = 0;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+            var creepRTSPercent = 5;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var tension = WeatherExtensions.CalculateInitialTensions(weather, wire, creep);
+
+            // Assert
+            Assert.Equal(expectedResult, tension, SigFigs);
+        }
+
+        [Fact]
+        public void Calculate556ElasticTension_Success()
+        {
+            // Setup
+            var expectedResult = 2819.01124957566;
+            var wire = WireFactory.Create(556);
+            var temperature = 0.0;
+            var iceRadius = 0.0;
+            var windPressure = 0.0;
+            var finalSpanLength = 50;
+            var finalElevation = 0;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+            var creepRTSPercent = 5;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var tension = WeatherExtensions.CalculateElasticTension(weather, wire, creep);
+
+            // Assert
+            Assert.Equal(expectedResult, tension, SigFigs);
+        }
+
+        [Fact]
+        public void Calculate556SagTest_Success()
+        {
+            // Setup
+            var expectedResult = 0.660679754095347;
+            var wire = WireFactory.Create(556);
+            var temperature = 0.0;
+            var iceRadius = 0.0;
+            var windPressure = 0.0;
+            var finalSpanLength = 50;
+            var finalElevation = 0;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+            var creepRTSPercent = 5;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var sag = WeatherExtensions.CalculateSag(3600 / WeatherExtensions.CalculateFinalLinearForce(weather, wire), weather.FinalSpanLength, weather.FinalElevation);
+
+            // Assert
+            Assert.Equal(expectedResult, sag, SigFigs);
         }
     }
 }

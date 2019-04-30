@@ -58,9 +58,25 @@ namespace TensionSag.Tests
         public void CalculateOriginalLength_Success()
         {
             // Setup
-            var expectedLength = 49.9517734053087;
-            var wire = WireFactory.Create();
+            var expectedLength = 49.9518250626855;
+            var wire = WireFactory.Create(795);
             var creepRTSPercent = 30;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var actualLength = wire.CalculateOriginalLength(creep);
+
+            // Assert
+            Assert.Equal(expectedLength, actualLength, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateOriginalLength556_Success()
+        {
+            // Setup
+            var expectedLength = 50.0223040579414;
+            var wire = WireFactory.Create(556);
+            var creepRTSPercent = 5;
             var creep = new Creep(creepRTSPercent);
 
             // Execute
@@ -75,7 +91,7 @@ namespace TensionSag.Tests
         {
             // Setup
             var expectedLength = 1.88197993595359E-05;
-            var wire = WireFactory.Create();
+            var wire = WireFactory.Create(795);
 
             // Execute
             var actualLength = wire.CalculateWireThermalCoefficient();
@@ -89,7 +105,7 @@ namespace TensionSag.Tests
         {
             // Setup
             var expectedLength = 0.00101685891255513;
-            var wire = WireFactory.Create();
+            var wire = WireFactory.Create(795);
             var stress = wire.StartingTension/wire.TotalCrossSection;
  
 

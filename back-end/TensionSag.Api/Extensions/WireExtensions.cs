@@ -46,7 +46,7 @@ namespace TensionSag.Api.Extensions
 
             double initialArcLength = WeatherExtensions.CalculateArcLength(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant);
 
-            return initialArcLength - initialArcLength * initialStrain;
+            return initialArcLength / (1 + initialStrain);
         }
 
         public static double CalculateStringingStrain(this Wire wire, double stress)

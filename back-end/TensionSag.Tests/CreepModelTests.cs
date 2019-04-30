@@ -21,7 +21,7 @@ namespace TensionSag.Tests
         {
             // Setup
             var expectedResult = 0.000827141144670066;
-            var wire = WireFactory.Create();
+            var wire = WireFactory.Create(795);
             var creepRTSPercent = 20;
             var creep = new Creep(creepRTSPercent);
 
