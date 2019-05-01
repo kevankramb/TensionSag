@@ -11,7 +11,7 @@ namespace TensionSag.Tests
         {
             if (wireType == 795)
             {
-                var name = "Tension Wire Test Drake 795";
+                var name = "Tension Wire Test Drake 795 ACSR";
                 var totalCrossSection = 0.00046844;
                 var initialWireDiameter = 0.0281432;
                 var finalWireDiameter = 0.0281432;

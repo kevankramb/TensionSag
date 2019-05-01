@@ -5,21 +5,25 @@ namespace TensionSag.Api.Extensions
 {
     public static class WeatherExtensions
     {
+        //this contains all of the calculations that are dependent on the weather condition and loading of the wire
+        //includes sag 
         private static readonly double IceDensity = 916.8;
         private static readonly double Gravity = 9.80665;
 
         //this calculates the final elastic tension
         //the calculation assumes all plastic elongation has occured prior to the weather condition 
-        //long term plastic elongation (creep) is assumed to be the controlling plastic elongation, future work needs to be done to calculate the maximum plastic strain due to high tension and then force this calculation to use the higher of the two.
+        //long term plastic elongation (creep) is assumed to be the controlling plastic elongation
+        //future work needs to be done to calculate the maximum plastic strain due to high tension and then force this calculation to use the higher of the two.
         public static double CalculateElasticTension(this Weather weather, Wire wire, Creep creep)
         {
             double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
             double StartingWireLength = orginalLength + orginalLength * CreepExtensions.CalculateCreepStrain(creep, wire);
+            double StartingWireLengthDesignTemp = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp);
             double psi = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp);
             double beta = StartingWireLength / (WireExtensions.CalculateWireElasticity(wire) * wire.TotalCrossSection);
 
             double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
-            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) /( 8 * Math.Sqrt(3*lengthEstimate*(Math.Abs(StartingWireLength- lengthEstimate)) / 8 ));
+            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) /( 8 * Math.Sqrt(3*lengthEstimate*(Math.Abs(StartingWireLengthDesignTemp - lengthEstimate)) / 8 ));
 
             double difference = 100;
             while (Math.Abs(difference) > 0.001d)
@@ -32,11 +36,13 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
-        //this calculates the 'initial' tension from the stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
+        //this calculates the 'initial' tension from the initial stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
+        //this tension is typically called the 1-hour creep tension,'short' term tension condition, or stringing tensions.
         //vaguely this calculation goes like this: 1)estimate length at design case 2) calculate strain for that length 3) calculate stress for that strain 4) calculate the average tension for that stress
         //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
-        //there is currently an issue with this where for my 556 all aluminum conductor at low tensions the length from the geomtry calculation is shorter than the original length, leading to a zero strain on the next cycle
-        //I suspect this is due to some kind of scenario where the wire geometry doesn't make sense and the underlying equations (geometric length vs tension and stress vs strain do not have a common intersection tension to converge to)
+        //in practice this is accomplished by plugging stress= h/rho and strain = (arclength- originallength)/originallength into the stress strain equation
+        //this results in an equation that has only one unknown, horizontal tension. this can be solved with a newton-raphson loop.
+        //our input stress strain equation is in % strain, so the engineering strain must be multiplied by 100
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
             
@@ -139,6 +145,8 @@ namespace TensionSag.Api.Extensions
 
         }
 
+        //this is the derivative of the arc length calculation with respect to horizontal tension
+        //used in the newton raphson cycles for both 'initial' (stringing) and 'final' (post full creep or 10-year creep) tensions.
         public static double CalculateArcLengthPrime(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation)
         {
             double iota = Math.Exp(finalSpanLength * linearForce / horizontalTension);

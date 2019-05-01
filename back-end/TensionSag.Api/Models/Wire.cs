@@ -4,6 +4,7 @@ namespace TensionSag.Api.Models
 {
     public class Wire
     {
+        //all units metric mks. for the polynomials convert from psi to pascals
         public string Name { get; }
         public double TotalCrossSection { get; }
         public double CoreCrossSection { get; }

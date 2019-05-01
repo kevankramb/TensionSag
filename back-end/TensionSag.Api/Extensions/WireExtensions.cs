@@ -5,6 +5,8 @@ namespace TensionSag.Api.Extensions
 {
     public static class WireExtensions
     {
+        //this is all of the calculated wire properties such as the full wires youngs modulus and the stress free initial length before plastic elongation
+        //future work is to add in calculations for high temp bimetal wires where the outerstrands could go into compression placing all tension on the core.
         public static double CalculateWireElasticity(this Wire wire)
         {
             return wire.OuterElasticity + wire.CoreElasticity;
