@@ -248,5 +248,73 @@ namespace TensionSag.Tests
             // Assert
             Assert.Equal(expectedResult, sag, SigFigs);
         }
+
+        [Fact]
+        public void CalculateFinalLinearForceInclined_Success()
+        {
+            // Setup
+            var expectedResult = 43.5274780001651;
+            var wire = WireFactory.Create(1);
+            var temperature = 0.0;
+            var iceRadius = 0.0125;
+            var windPressure = 400.0;
+            var finalSpanLength = 36;
+            var finalElevation = 1.26;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+
+            // Execute
+            var linearForce = WeatherExtensions.CalculateFinalLinearForce(weather, wire);
+
+            // Assert
+            Assert.Equal(expectedResult, linearForce, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateXcInclinded_Success()
+        {
+            // Setup
+            var expectedResult = 25;
+            var catenaryConstant = 183.972911;
+            var spanLength = 35.97;
+            var spanElevation = 1.256;
+
+            // Execute
+            var Xc = WeatherExtensions.CalculateXc(spanLength, spanElevation, catenaryConstant);
+
+            // Assert
+            Assert.Equal(expectedResult, Xc, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateYcInclined_Success()
+        {
+            // Setup
+            var expectedResult = -0.223220217279341;
+            var catenaryConstant = 183.972911;
+            var Xc = 11.5725554426295;
+
+            // Execute
+            var Yc = WeatherExtensions.CalculateYc(catenaryConstant, Xc);
+
+            // Assert
+            Assert.Equal(expectedResult, Yc, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateXdInclined_Success()
+        {
+            // Setup
+            var expectedResult = 25;
+            var catenaryConstant = 1400.0;
+            var Xc = 25;
+            var spanLength = 50;
+            var spanElevation = 0.0;
+
+            // Execute
+            var Xd = WeatherExtensions.CalculateXd(Xc, catenaryConstant, spanElevation, spanLength);
+
+            // Assert
+            Assert.Equal(expectedResult, Xd, SigFigs);
+        }
     }
 }

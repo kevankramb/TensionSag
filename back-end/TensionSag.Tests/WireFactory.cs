@@ -69,6 +69,36 @@ namespace TensionSag.Tests
                 return wire;
             }
 
+            if (wireType == 1)
+            {
+                var name = "fake data for testing";
+                var totalCrossSection = 0.0002818704;
+                var initialWireDiameter = 0.0217424;
+                var finalWireDiameter = 0.02455;
+                var initialWireLinearWeight = 4.63;
+                var finalWireLinearWeight = 4.63;
+                var maxRatedStrength = 43370;
+                var outerElasticity = 61605437000;
+                var outerThermalCoefficient = 0.00002304;
+                var coreElasticity = 0;
+                var coreThermalCoefficient = 0;
+                var outerStressStrainList = new List<double> { 0, 483543118, -3.58196e+8, -2.29416e+8, 2.30271e+8 };
+                var outerCreepList = new List<double> { 0, 202416285, -14775465, -144390007, 1.63682e+8 };
+                var coreStressStrainList = new List<double> { 0, 0, 0, 0, 0 };
+                var coreCreepList = new List<double> { 0, 0, 0, 0, 0 };
+                var startingTension = 3000.0;
+                var startingTemp = 10.0;
+                var startingSpanLength = 50;
+                var startingElevation = 0.0;
+                var startingTensionType = true;
+                var material = WireMaterial.ACSR;
+                var wire = Wire.Create(name, totalCrossSection, initialWireDiameter, finalWireDiameter, initialWireLinearWeight, finalWireLinearWeight, maxRatedStrength,
+                    outerElasticity, outerThermalCoefficient, coreElasticity, coreThermalCoefficient,
+                    outerStressStrainList, outerCreepList, coreStressStrainList, coreCreepList,
+                    startingTension, startingTemp, startingSpanLength, startingElevation, startingTensionType, material);
+                return wire;
+            }
+
             else
             {
                 var name = "General Wire Data";

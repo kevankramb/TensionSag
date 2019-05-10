@@ -128,7 +128,7 @@ namespace TensionSag.Api.Extensions
         //calculates the final weather loaded linear weight of the wire and bundle. does not account for NESC linear constant yet
         public static double CalculateFinalLinearForce(this Weather weather, Wire wire)
         {
-            double WindLinearForce = wire.FinalWireDiameter * weather.WindPressure;
+            double WindLinearForce = (wire.FinalWireDiameter+weather.IceRadius*2) * weather.WindPressure;
             double WeightLinearForce = -((Math.PI * Math.Pow(wire.FinalWireDiameter / 2 + weather.IceRadius, 2d) - (Math.PI * Math.Pow(wire.FinalWireDiameter / 2, 2d))) * IceDensity * Gravity + wire.FinalWireLinearWeight);
 
             return Math.Sqrt(Math.Pow(WindLinearForce, 2d) + Math.Pow(WeightLinearForce, 2d));
