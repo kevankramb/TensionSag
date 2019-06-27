@@ -43,7 +43,7 @@ namespace TensionSag.Tests
         public void CalculateElasticTension_Success()
         {
             // Setup
-            var expectedResult = 27057.963390129;
+            var expectedResult = 27057.9633743866;
             var wire = WireFactory.Create(795);
             var temperature = 0.0;
             var iceRadius = 0.0;
@@ -56,6 +56,31 @@ namespace TensionSag.Tests
 
             // Execute
             var tension = WeatherExtensions.CalculateElasticTension(weather, wire, creep);
+            // Test the transform back to the structures coordinate system
+            var finaltension = WeatherExtensions.StructureLongitudinalForce(weather, wire, finalElevation, finalSpanLength, tension);
+
+            // Assert
+            Assert.Equal(expectedResult, tension, SigFigs);
+            Assert.Equal(expectedResult, finaltension, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateInitialDuplexTension_Success()
+        {
+            // Setup
+            var expectedResult = 4156.73688896795;
+            var wire = WireFactory.Create(4);
+            var temperature = -40.0;
+            var iceRadius = 0.0;
+            var windPressure = 0.0;
+            var finalSpanLength = wire.StartingSpanLength;
+            var finalElevation = wire.StartingElevation;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+            var creepRTSPercent = 30;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var tension = WeatherExtensions.CalculateInitialTensions(weather, wire, creep);
 
             // Assert
             Assert.Equal(expectedResult, tension, SigFigs);
@@ -145,7 +170,7 @@ namespace TensionSag.Tests
         public void CalculateFinalLinearForce_Success()
         {
             // Setup
-            var expectedResult = 43.5274780001651;
+            var expectedResult = 45.2625626876656;
             var wire = WireFactory.Create(795);
             var temperature = 0.0;
             var iceRadius = 0.02;
@@ -209,7 +234,7 @@ namespace TensionSag.Tests
         public void Calculate556ElasticTensionHot_Success()
         {
             // Setup
-            var expectedResult = 1339.4659607512;
+            var expectedResult = 1339.46608438592;
             var wire = WireFactory.Create(556);
             var temperature = 100.0;
             var iceRadius = 0.0;
@@ -253,13 +278,13 @@ namespace TensionSag.Tests
         public void CalculateFinalLinearForceInclined_Success()
         {
             // Setup
-            var expectedResult = 43.5274780001651;
+            var expectedResult = 26.5803407868209;
             var wire = WireFactory.Create(1);
             var temperature = 0.0;
             var iceRadius = 0.0125;
             var windPressure = 400.0;
-            var finalSpanLength = 36;
-            var finalElevation = 1.26;
+            var finalSpanLength = 35.97;
+            var finalElevation = 1.256;
             var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
 
             // Execute
@@ -273,7 +298,7 @@ namespace TensionSag.Tests
         public void CalculateXcInclinded_Success()
         {
             // Setup
-            var expectedResult = 25;
+            var expectedResult = 11.5725554426295;
             var catenaryConstant = 183.972911;
             var spanLength = 35.97;
             var spanElevation = 1.256;
@@ -289,7 +314,7 @@ namespace TensionSag.Tests
         public void CalculateYcInclined_Success()
         {
             // Setup
-            var expectedResult = -0.223220217279341;
+            var expectedResult = -0.364097639344555;
             var catenaryConstant = 183.972911;
             var Xc = 11.5725554426295;
 
@@ -304,11 +329,11 @@ namespace TensionSag.Tests
         public void CalculateXdInclined_Success()
         {
             // Setup
-            var expectedResult = 25;
-            var catenaryConstant = 1400.0;
-            var Xc = 25;
-            var spanLength = 50;
-            var spanElevation = 0.0;
+            var expectedResult = 17.9952144920095;
+            var catenaryConstant = 183.972911;
+            var Xc = 11.5725554426295;
+            var spanLength = 35.97;
+            var spanElevation = 1.256;
 
             // Execute
             var Xd = WeatherExtensions.CalculateXd(Xc, catenaryConstant, spanElevation, spanLength);
@@ -316,5 +341,59 @@ namespace TensionSag.Tests
             // Assert
             Assert.Equal(expectedResult, Xd, SigFigs);
         }
+
+        [Fact]
+        public void CalculateSagInclined_Success()
+        {
+            // Setup
+            var expectedResult = 0.880332532899847;
+            var catenaryConstant = 183.972911;
+            var spanLength = 35.97;
+            var spanElevation = 1.256;
+
+            // Execute
+            var Sag = WeatherExtensions.CalculateSag(catenaryConstant, spanLength, spanElevation);
+
+            // Assert
+            Assert.Equal(expectedResult, Sag, SigFigs);
+        }
+
+        [Fact]
+        public void CalculateLargeInclinationElasticTension_Success()
+        {
+            // Setup
+            var expectedTension = 17005.6202755279;
+            var expectedFinalTension = 11580.6027465652;
+            var wire = WireFactory.Create(557);
+            var temperature = -30.0;
+            var iceRadius = 0.02;
+            var windPressure = 400.0;
+            var finalSpanLength = wire.StartingSpanLength;
+            var finalElevation = wire.StartingElevation;
+            var weather = new Weather(temperature, iceRadius, windPressure, finalSpanLength, finalElevation);
+            var creepRTSPercent = 10;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var tension = WeatherExtensions.CalculateElasticTension(weather, wire, creep);
+            // Test the transform back to the structures coordinate system
+            var finaltension = WeatherExtensions.StructureLongitudinalForce(weather, wire, finalElevation, finalSpanLength, tension);
+
+            // Assert
+            Assert.Equal(expectedTension, tension, SigFigs);
+            Assert.Equal(expectedFinalTension, finaltension, SigFigs);
+        }
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }
