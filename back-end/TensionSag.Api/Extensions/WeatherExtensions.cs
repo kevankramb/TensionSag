@@ -5,21 +5,25 @@ namespace TensionSag.Api.Extensions
 {
     public static class WeatherExtensions
     {
+        //this contains all of the calculations that are dependent on the weather condition and loading of the wire
+        //includes sag 
         private static readonly double IceDensity = 916.8;
         private static readonly double Gravity = 9.80665;
 
         //this calculates the final elastic tension
         //the calculation assumes all plastic elongation has occured prior to the weather condition 
-        //long term plastic elongation (creep) is assumed to be the controlling plastic elongation, future work needs to be done to calculate the maximum plastic strain due to high tension and then force this calculation to use the higher of the two.
+        //long term plastic elongation (creep) is assumed to be the controlling plastic elongation
+        //future work needs to be done to calculate the maximum plastic strain due to high tension and then force this calculation to use the higher of the two.
         public static double CalculateElasticTension(this Weather weather, Wire wire, Creep creep)
         {
             double orginalLength = WireExtensions.CalculateOriginalLength(wire, creep);
             double StartingWireLength = orginalLength + orginalLength * CreepExtensions.CalculateCreepStrain(creep, wire);
+            double StartingWireLengthDesignTemp = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp);
             double psi = StartingWireLength + WireExtensions.CalculateWireThermalCoefficient(wire) * StartingWireLength * (weather.Temperature - wire.StartingTemp);
             double beta = StartingWireLength / (WireExtensions.CalculateWireElasticity(wire) * wire.TotalCrossSection);
 
             double lengthEstimate = Math.Sqrt(Math.Pow(weather.FinalSpanLength, 2) + Math.Pow(weather.FinalElevation, 2));
-            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) /( 8 * Math.Sqrt(3*lengthEstimate*(Math.Abs(StartingWireLength- lengthEstimate)) / 8 ));
+            double horizontalTension = CalculateFinalLinearForce(weather, wire) * (lengthEstimate * lengthEstimate) /( 8 * Math.Sqrt(3*lengthEstimate*(Math.Abs(StartingWireLengthDesignTemp - lengthEstimate)) / 8 ));
 
             double difference = 100;
             while (Math.Abs(difference) > 0.001d)
@@ -32,11 +36,13 @@ namespace TensionSag.Api.Extensions
             return horizontalTension;
         }
 
-        //this calculates the 'initial' tension from the stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
+        //this calculates the 'initial' tension from the initial stress strain curve, assumption is that no plastic elongation has occured yet, but the wire does not experience linear elasticity.
+        //this tension is typically called the 1-hour creep tension,'short' term tension condition, or stringing tensions.
         //vaguely this calculation goes like this: 1)estimate length at design case 2) calculate strain for that length 3) calculate stress for that strain 4) calculate the average tension for that stress
         //5) find the horizontal tension that results in that average tension 6) calculate the wire length for that horizontal tension from the wire geometry and return to step 2) with the new wire length estimate
-        //there is currently an issue with this where for my 556 all aluminum conductor at low tensions the length from the geomtry calculation is shorter than the original length, leading to a zero strain on the next cycle
-        //I suspect this is due to some kind of scenario where the wire geometry doesn't make sense and the underlying equations (geometric length vs tension and stress vs strain do not have a common intersection tension to converge to)
+        //in practice this is accomplished by plugging stress= h/rho and strain = (arclength- originallength)/originallength into the stress strain equation
+        //this results in an equation that has only one unknown, horizontal tension. this can be solved with a newton-raphson loop.
+        //our input stress strain equation is in % strain, so the engineering strain must be multiplied by 100
         public static double CalculateInitialTensions(this Weather weather, Wire wire, Creep creep)
         {
             
@@ -108,8 +114,8 @@ namespace TensionSag.Api.Extensions
         //this is the x coordinate for the lowest point in the catenary geometry of the wire. for uplift conditions it is negative.
         public static double CalculateXc(double spanLength, double spanElevation, double catenaryConstant)
         {
-            double tempZVar = spanElevation * (Math.Sqrt(Math.Exp(spanLength / catenaryConstant))) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
-            return spanLength / 2.0d + catenaryConstant * Math.Log(tempZVar + Math.Sqrt(1 + tempZVar * tempZVar));
+            double tempZVar = spanElevation * Math.Sqrt(Math.Exp(spanLength / catenaryConstant)) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
+            return spanLength / 2.0 + catenaryConstant * Math.Log(tempZVar + Math.Sqrt(1 + tempZVar * tempZVar));
         }
 
         //calculates the total hanging wire length between attachment points
@@ -119,11 +125,16 @@ namespace TensionSag.Api.Extensions
             return catenaryConstant * (MathUtility.Sinh((spanLength - Xc) / catenaryConstant) + MathUtility.Sinh(Xc / catenaryConstant));
         }
 
+        public static double CalculateWeightLinearForce(this Weather weather, Wire wire)
+        {
+            return -((Math.PI * Math.Pow(wire.FinalWireDiameter / 2 + weather.IceRadius, 2d) - (Math.PI * Math.Pow(wire.FinalWireDiameter / 2, 2d))) * IceDensity * Gravity + wire.FinalWireLinearWeight);
+        }
+
         //calculates the final weather loaded linear weight of the wire and bundle. does not account for NESC linear constant yet
         public static double CalculateFinalLinearForce(this Weather weather, Wire wire)
         {
-            double WindLinearForce = wire.FinalWireDiameter * weather.WindPressure;
-            double WeightLinearForce = -((Math.PI * Math.Pow(wire.FinalWireDiameter / 2 + weather.IceRadius, 2d) - (Math.PI * Math.Pow(wire.FinalWireDiameter / 2, 2d))) * IceDensity * Gravity + wire.FinalWireLinearWeight);
+            double WindLinearForce = (wire.FinalWireDiameter+weather.IceRadius*2) * weather.WindPressure;
+            double WeightLinearForce = CalculateWeightLinearForce(weather, wire);
 
             return Math.Sqrt(Math.Pow(WindLinearForce, 2d) + Math.Pow(WeightLinearForce, 2d));
         }
@@ -131,7 +142,7 @@ namespace TensionSag.Api.Extensions
         //newton raphson method junk for the elastic tension calculation. this basically follows the numerical tension method but very accurately accounts for changes in elevation
         public static double SolveForDifference(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation, double psi, double beta)
         {
-            double arcLengthPrime = CalculateArcLengthPrime(horizontalTension, finalSpanLength, linearForce, finalSpanLength);
+            double arcLengthPrime = CalculateArcLengthPrime(horizontalTension, finalSpanLength, linearForce, finalSpanElevation);
 
             double arcLength = CalculateArcLength(finalSpanLength, finalSpanElevation, (horizontalTension / linearForce));
 
@@ -139,6 +150,8 @@ namespace TensionSag.Api.Extensions
 
         }
 
+        //this is the derivative of the arc length calculation with respect to horizontal tension
+        //used in the newton raphson cycles for both 'initial' (stringing) and 'final' (post full creep or 10-year creep) tensions.
         public static double CalculateArcLengthPrime(double horizontalTension, double finalSpanLength, double linearForce, double finalSpanElevation)
         {
             double iota = Math.Exp(finalSpanLength * linearForce / horizontalTension);
@@ -161,6 +174,64 @@ namespace TensionSag.Api.Extensions
                 MathUtility.Sinh((linearForce * (finalSpanLength / 2d + horizontalTension * xi)) / horizontalTension) / linearForce;
 
             return (tau + upsilon);
+        }
+
+        //calculates the vertical force at the current support structure due to the wire in what ever coordinate system it is given
+        //typically the wire's coordinate system is used and a transform is done later to find the vertical force transfered to the structure
+        //im not exactly sure where these equations are from, or why they result in a different value from simply calculating -Math.Sinh(Xc / catenaryConstant) * horizontalTension
+        //these equations are potentually transforming the Xc point in the blown geometry but i cannot find documentation on it at the moment
+        public static double CalculateVerticalForce(this Weather weather, Wire wire, double blownSpanLength, double blownElevation, double horizontalTension)
+        {
+            double catenaryConstant = horizontalTension / CalculateFinalLinearForce(weather, wire);
+
+            //double Xc = CalculateXc(blownSpanLength, blownElevation, catenaryConstant);
+            //return -Math.Sinh(Xc / catenaryConstant) * horizontalTension;
+
+            double sn = 2 * catenaryConstant * Math.Sinh(blownSpanLength / (2 * catenaryConstant));
+            double s = Math.Sqrt(Math.Pow(sn, 2) + Math.Pow(blownElevation, 2));
+            double ub = blownSpanLength / 2 - catenaryConstant * Math.Log((s + blownElevation) / sn);
+            double vPrime = horizontalTension * Math.Sinh(ub / catenaryConstant);
+            return vPrime;
+
+        }
+
+        //These four 'blown' calculations find the wire geometry when it swings out of the plane of the support structures due to transverse wind forces
+        //blown elevation and span length are used for the vertical force calculations
+        public static double BlownVerticalAngle(this Weather weather, Wire wire)
+        {
+            return Math.Acos(-CalculateWeightLinearForce(weather, wire) / CalculateFinalLinearForce(weather, wire));
+        }
+
+        public static double BlownHorizontalAngle(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength)
+        {
+            return Math.Atan(-finalSpanElevation * Math.Sin(BlownVerticalAngle(weather, wire)) / finalSpanLength);
+        }
+
+        public static double BlownSpanElevation(this Weather weather, Wire wire, double finalSpanElevation)
+        {
+            return finalSpanElevation * Math.Cos(BlownVerticalAngle(weather, wire));
+        }
+
+        public static double BlownSpanLength(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength)
+        {
+            return finalSpanLength / Math.Cos(BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength));
+        }
+
+        //These functions translate the wire forces in the blown/swung out geometry coordinate system back to the support structures coordinate system
+        public static double StructureVerticalForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)
+        {
+            double blownspanlength = BlownSpanLength(weather, wire, finalSpanElevation, finalSpanLength);
+            double blownelevation = BlownSpanElevation(weather, wire, finalSpanElevation);
+            double verticalForce = CalculateVerticalForce(weather, wire, blownspanlength, blownelevation, horizontalTension);
+            double blownVerticalAngle = BlownVerticalAngle(weather, wire);
+            double blownHorizontalAngle = BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength);
+
+            return -(verticalForce * Math.Cos(blownVerticalAngle) + horizontalTension * Math.Sin(blownHorizontalAngle) * Math.Sin(blownVerticalAngle));
+        }
+
+        public static double StructureLongitudinalForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)
+        {
+            return horizontalTension * Math.Cos(BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength));
         }
 
     }

@@ -4,6 +4,7 @@ namespace TensionSag.Api.Models
 {
     public class Wire
     {
+        //all units metric mks. for the polynomials convert from psi to pascals
         public string Name { get; }
         public double TotalCrossSection { get; }
         public double CoreCrossSection { get; }
@@ -22,6 +23,7 @@ namespace TensionSag.Api.Models
         public List<double> CoreCreepList { get; }
         public double StartingTension { get; }
         public double StartingTemp { get; }
+        //starting span length and elevation are not wire properties but its convenient to keep them here for testing the algorithm. maybe more fitting to move them to weather.
         public double StartingSpanLength { get; }
         public double StartingElevation { get; }
         public bool StartingTensionType { get; }

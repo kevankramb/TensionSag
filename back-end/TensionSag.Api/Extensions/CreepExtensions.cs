@@ -5,6 +5,7 @@ namespace TensionSag.Api.Extensions
 {
     public static class CreepExtensions
     {
+        //this is the creep strain calculations. these are sort of wire properties, but are depenent on the tensioning conditions of the wire, and not depenent on the weather loading conditions, so the are in their own class.
         public static double CalculateCreepStrain(this Creep creep, Wire wire)
         {
             //todo: change this to also calculate the plastic elongation due to high tension with the stress-strain curve and return the higher strain
@@ -19,6 +20,7 @@ namespace TensionSag.Api.Extensions
 
             double averageTension = (LeftTotalTension + RightTotalTension) / 2 - wire.InitialWireLinearWeight * WeatherExtensions.CalculateSag(startingCatenaryCosntant, wire.StartingSpanLength, wire.StartingElevation) / 2;
 
+            //refactor these to be calculated and stored in one place
             double wireCreepK0 = wire.OuterCreepList[0] + wire.CoreCreepList[0];
             double wireCreepK1 = wire.OuterCreepList[1] + wire.CoreCreepList[1];
             double wireCreepK2 = wire.OuterCreepList[2] + wire.CoreCreepList[2];
@@ -45,6 +47,7 @@ namespace TensionSag.Api.Extensions
 
         public static double CalculateStartingStrain(this Wire wire)
         {
+            //still on the fence if the average tension calculations are needed. a potentual edge case worth testing is very low tension wires where the horizontal tension does not dominate the average tension in the wire
             //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
 
@@ -56,6 +59,7 @@ namespace TensionSag.Api.Extensions
 
             double averageTension = (LeftTotalTension + RightTotalTension) / 2 - wire.InitialWireLinearWeight * WeatherExtensions.CalculateSag(startingCatenaryCosntant, wire.StartingSpanLength, wire.StartingElevation) / 2;
 
+            //refactor these to be calculated and stored in one place
             double wireCreepK0 = wire.OuterCreepList[0] + wire.CoreCreepList[0];
             double wireCreepK1 = wire.OuterCreepList[1] + wire.CoreCreepList[1];
             double wireCreepK2 = wire.OuterCreepList[2] + wire.CoreCreepList[2];
