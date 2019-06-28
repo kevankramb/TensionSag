@@ -133,6 +133,7 @@ namespace TensionSag.Api.Extensions
         //calculates the final weather loaded linear weight of the wire and bundle. does not account for NESC linear constant yet
         public static double CalculateFinalLinearForce(this Weather weather, Wire wire)
         {
+            //this wind linear force calculation assumes wind acts perpendicular to the wire. to account for off axis winds yaw wind must be accounted for.
             double WindLinearForce = (wire.FinalWireDiameter+weather.IceRadius*2) * weather.WindPressure;
             double WeightLinearForce = CalculateWeightLinearForce(weather, wire);
 
@@ -232,6 +233,18 @@ namespace TensionSag.Api.Extensions
         public static double StructureLongitudinalForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)
         {
             return horizontalTension * Math.Cos(BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength));
+        }
+
+        //this is the wind force exerted on the structure due to the wire. it acts perpendicular to the wire span and horizontal tension.
+        public static double StructureTangentialForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)
+        {
+            double blownspanlength = BlownSpanLength(weather, wire, finalSpanElevation, finalSpanLength);
+            double blownelevation = BlownSpanElevation(weather, wire, finalSpanElevation);
+            double verticalForce = CalculateVerticalForce(weather, wire, blownspanlength, blownelevation, horizontalTension);
+            double blownVerticalAngle = BlownVerticalAngle(weather, wire);
+            double blownHorizontalAngle = BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength);
+
+            return verticalForce * Math.Sin(blownVerticalAngle) - horizontalTension * Math.Sin(blownHorizontalAngle) * Math.Cos(blownVerticalAngle);
         }
 
     }
