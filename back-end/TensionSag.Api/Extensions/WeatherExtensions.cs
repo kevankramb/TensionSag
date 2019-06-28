@@ -114,8 +114,8 @@ namespace TensionSag.Api.Extensions
         //this is the x coordinate for the lowest point in the catenary geometry of the wire. for uplift conditions it is negative.
         public static double CalculateXc(double spanLength, double spanElevation, double catenaryConstant)
         {
-            double tempZVar = spanElevation * (Math.Sqrt(Math.Exp(spanLength / catenaryConstant))) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
-            return spanLength / 2.0d + catenaryConstant * Math.Log(tempZVar + Math.Sqrt(1 + tempZVar * tempZVar));
+            double tempZVar = spanElevation * Math.Sqrt(Math.Exp(spanLength / catenaryConstant)) / (catenaryConstant * (1 - Math.Exp(spanLength / catenaryConstant)));
+            return spanLength / 2.0 + catenaryConstant * Math.Log(tempZVar + Math.Sqrt(1 + tempZVar * tempZVar));
         }
 
         //calculates the total hanging wire length between attachment points
@@ -178,19 +178,28 @@ namespace TensionSag.Api.Extensions
 
         //calculates the vertical force at the current support structure due to the wire in what ever coordinate system it is given
         //typically the wire's coordinate system is used and a transform is done later to find the vertical force transfered to the structure
-        public static double CalculateVerticalForce(this Weather weather, Wire wire, double spanLength, double spanElevation, double horizontalTension)
+        //im not exactly sure where these equations are from, or why they result in a different value from simply calculating -Math.Sinh(Xc / catenaryConstant) * horizontalTension
+        //these equations are potentually transforming the Xc point in the blown geometry but i cannot find documentation on it at the moment
+        public static double CalculateVerticalForce(this Weather weather, Wire wire, double blownSpanLength, double blownElevation, double horizontalTension)
         {
             double catenaryConstant = horizontalTension / CalculateFinalLinearForce(weather, wire);
-            double Xc = CalculateXc(spanLength, spanElevation, catenaryConstant);
 
-            return -Math.Sinh(Xc / catenaryConstant) * horizontalTension;
+            //double Xc = CalculateXc(blownSpanLength, blownElevation, catenaryConstant);
+            //return -Math.Sinh(Xc / catenaryConstant) * horizontalTension;
+
+            double sn = 2 * catenaryConstant * Math.Sinh(blownSpanLength / (2 * catenaryConstant));
+            double s = Math.Sqrt(Math.Pow(sn, 2) + Math.Pow(blownElevation, 2));
+            double ub = blownSpanLength / 2 - catenaryConstant * Math.Log((s + blownElevation) / sn);
+            double vPrime = horizontalTension * Math.Sinh(ub / catenaryConstant);
+            return vPrime;
+
         }
 
         //These four 'blown' calculations find the wire geometry when it swings out of the plane of the support structures due to transverse wind forces
-        //blown elevation and span length are not used for anything currently but could be used to report on sag/arc length of wire in the blown geometry
+        //blown elevation and span length are used for the vertical force calculations
         public static double BlownVerticalAngle(this Weather weather, Wire wire)
         {
-            return Math.Acos(CalculateWeightLinearForce(weather, wire) / CalculateFinalLinearForce(weather, wire));
+            return Math.Acos(-CalculateWeightLinearForce(weather, wire) / CalculateFinalLinearForce(weather, wire));
         }
 
         public static double BlownHorizontalAngle(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength)
@@ -211,11 +220,13 @@ namespace TensionSag.Api.Extensions
         //These functions translate the wire forces in the blown/swung out geometry coordinate system back to the support structures coordinate system
         public static double StructureVerticalForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)
         {
-            double verticalForce = CalculateVerticalForce(weather, wire, finalSpanLength, finalSpanElevation, horizontalTension);
+            double blownspanlength = BlownSpanLength(weather, wire, finalSpanElevation, finalSpanLength);
+            double blownelevation = BlownSpanElevation(weather, wire, finalSpanElevation);
+            double verticalForce = CalculateVerticalForce(weather, wire, blownspanlength, blownelevation, horizontalTension);
             double blownVerticalAngle = BlownVerticalAngle(weather, wire);
             double blownHorizontalAngle = BlownHorizontalAngle(weather, wire, finalSpanElevation, finalSpanLength);
 
-            return verticalForce * Math.Cos(blownVerticalAngle) + horizontalTension * Math.Sin(blownHorizontalAngle) * Math.Sin(blownHorizontalAngle);
+            return -(verticalForce * Math.Cos(blownVerticalAngle) + horizontalTension * Math.Sin(blownHorizontalAngle) * Math.Sin(blownVerticalAngle));
         }
 
         public static double StructureLongitudinalForce(this Weather weather, Wire wire, double finalSpanElevation, double finalSpanLength, double horizontalTension)

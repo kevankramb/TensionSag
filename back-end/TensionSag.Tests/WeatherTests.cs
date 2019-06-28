@@ -363,7 +363,9 @@ namespace TensionSag.Tests
         {
             // Setup
             var expectedTension = 17005.6202755279;
-            var expectedFinalTension = 11580.6027465652;
+            var expectedLongitudinalTension = 11580.6027465652;
+            var expectedVertical = -13964.3821021557; //negative here doesnt make sense but thats how CIMA did the calculation, we correct it for the final vertical force
+            var expectedVerticalForce = 18678.6271820808;
             var wire = WireFactory.Create(557);
             var temperature = -30.0;
             var iceRadius = 0.02;
@@ -376,23 +378,20 @@ namespace TensionSag.Tests
 
             // Execute
             var tension = WeatherExtensions.CalculateElasticTension(weather, wire, creep);
+            var blownspanlength = WeatherExtensions.BlownSpanLength(weather, wire, finalElevation, finalSpanLength); //just an intermediate step for debugging
+            var blownelevation = WeatherExtensions.BlownSpanElevation(weather, wire, finalElevation); //just an intermediate step for debugging
+            var verticalforce = WeatherExtensions.CalculateVerticalForce(weather, wire, blownspanlength, blownelevation, tension); //just an intermediate step for debugging
+
             // Test the transform back to the structures coordinate system
-            var finaltension = WeatherExtensions.StructureLongitudinalForce(weather, wire, finalElevation, finalSpanLength, tension);
+            var finallongitudinaltension = WeatherExtensions.StructureLongitudinalForce(weather, wire, finalElevation, finalSpanLength, tension);
+            var finalverticaltension = WeatherExtensions.StructureVerticalForce(weather, wire, finalElevation, finalSpanLength, tension);
 
             // Assert
             Assert.Equal(expectedTension, tension, SigFigs);
-            Assert.Equal(expectedFinalTension, finaltension, SigFigs);
+            Assert.Equal(expectedLongitudinalTension, finallongitudinaltension, SigFigs);
+            Assert.Equal(expectedVertical, verticalforce, SigFigs);
+            Assert.Equal(expectedVerticalForce, finalverticaltension, SigFigs);
         }
-
-
-
-
-
-
-
-
-
-
 
 
     }
