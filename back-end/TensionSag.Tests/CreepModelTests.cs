@@ -31,5 +31,24 @@ namespace TensionSag.Tests
             // Assert
             Assert.Equal(expectedResult, result, SigFigs);
         }
+
+        //this fails because the creep strain calulation needs to be reworked to handle small creep values. 
+        //for a creep rts percent of zero, the creep strain should return zero.
+        [Fact]
+        public void CalculateZeroCreepStrain_Success()
+        {
+            // Setup
+            var expectedResult = 0;
+            var wire = WireFactory.Create(795);
+            var creepRTSPercent = 0;
+            var creep = new Creep(creepRTSPercent);
+
+            // Execute
+            var result = creep.CalculateCreepStrain(wire);
+
+            // Assert
+            Assert.Equal(expectedResult, result, SigFigs);
+        }
+
     }
 }
