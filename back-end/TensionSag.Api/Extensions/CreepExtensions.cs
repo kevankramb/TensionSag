@@ -10,6 +10,7 @@ namespace TensionSag.Api.Extensions
         {
             //todo: change this to also calculate the plastic elongation due to high tension with the stress-strain curve and return the higher strain
             //calculate the average tension in the wire then find the initial stress
+            //this also needs to be changed to hand small or zero values for creepRTS percents. currently it returns NAN when modeling zero creep while it should just return 0 strain.
             double startingCatenaryCosntant = (creep.CreepRTSPercent / 100) * wire.MaxRatedStrength / wire.FinalWireLinearWeight;
 
             double LeftVerticalForce = -MathUtility.Sinh(WeatherExtensions.CalculateXc(wire.StartingSpanLength, wire.StartingElevation, startingCatenaryCosntant) / startingCatenaryCosntant) * (creep.CreepRTSPercent / 100) * wire.MaxRatedStrength;

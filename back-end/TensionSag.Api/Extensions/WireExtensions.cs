@@ -83,7 +83,7 @@ namespace TensionSag.Api.Extensions
 
             double stressFreeLength = startingArcLength - wire.StartingTension * startingArcLength / (wire.TotalCrossSection * WireExtensions.CalculateWireElasticity(wire));
             double creepStrain = CreepExtensions.CalculateCreepStrain(creep, wire);
-            return (stressFreeLength - stressFreeLength * creepStrain);
+            return stressFreeLength / (1 + creepStrain);
 
         }
     }

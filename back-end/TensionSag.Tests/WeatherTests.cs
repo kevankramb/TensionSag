@@ -358,14 +358,17 @@ namespace TensionSag.Tests
             Assert.Equal(expectedResult, Sag, SigFigs);
         }
 
+        //this is a pretty good example of how the general backend works
+        //calculate which ever horizontal tension you need, then input that into the 'structure' force transformations to read out the 
+        //actual force exerted on the structure.
         [Fact]
         public void CalculateLargeInclinationElasticTension_Success()
         {
             // Setup
-            var expectedTension = 17005.6202755279;
-            var expectedLongitudinalTension = 11580.6027465652;
-            var expectedVertical = -13964.3821021557; //negative here doesnt make sense but thats how CIMA did the calculation, we correct it for the final vertical force
-            var expectedVerticalForce = 18678.6271820808;
+            var expectedTension = 16972.6716275075;
+            var expectedLongitudinalTension = 11558.1651525476;
+            var expectedVertical = -13933.9733840054; //negative here doesnt make sense but thats how CIMA did the calculation, we correct it for the final vertical force
+            var expectedVerticalForce = 18639.808930321;
             var wire = WireFactory.Create(557);
             var temperature = -30.0;
             var iceRadius = 0.02;
