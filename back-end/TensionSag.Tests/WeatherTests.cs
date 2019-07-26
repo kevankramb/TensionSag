@@ -43,7 +43,7 @@ namespace TensionSag.Tests
         public void CalculateElasticTension_Success()
         {
             // Setup
-            var expectedResult = 27057.9633743866;
+            var expectedResult = 27060.8000272576;
             var wire = WireFactory.Create(795);
             var temperature = 0.0;
             var iceRadius = 0.0;
@@ -234,7 +234,7 @@ namespace TensionSag.Tests
         public void Calculate556ElasticTensionHot_Success()
         {
             // Setup
-            var expectedResult = 1339.46608438592;
+            var expectedResult = 1339.50376340508;
             var wire = WireFactory.Create(556);
             var temperature = 100.0;
             var iceRadius = 0.0;
