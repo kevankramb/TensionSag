@@ -39,8 +39,9 @@ namespace TensionSag.Api.Extensions
                 strainPercent = (strainPercent - difference);
 
             }
-
-            double finalCreepStrainPercent = -(stress - WireExtensions.CalculateWireElasticity(wire) * strainPercent) / WireExtensions.CalculateWireElasticity(wire);
+            //previous 'wrong' calculation: -(stress - WireExtensions.CalculateWireElasticity(wire) * strainPercent) / WireExtensions.CalculateWireElasticity(wire)
+            //the old calculation was the first back of the envolope equation I derived. Its reasonably accurate but the actual equation is easier to justify/derive and more accurate
+            double finalCreepStrainPercent = (strainPercent+1)/(1+ averageTension/(WireExtensions.CalculateWireElasticity(wire)* wire.TotalCrossSection))-1;
 
             //the stress strain curves all compare stress and strain percent. for our engineering calculations we need stain in unit length, so divide by 100 before returning the strain.
             return finalCreepStrainPercent / 100;
@@ -48,6 +49,9 @@ namespace TensionSag.Api.Extensions
 
         public static double CalculateStartingStrain(this Wire wire)
         {
+            //this whole calculation is deprecated for now since there are ways to avoid the starting strain calculation when the input tension is final
+            //havent decided if i want to keep this for future stand alone reporting capabilities.
+
             //still on the fence if the average tension calculations are needed. a potentual edge case worth testing is very low tension wires where the horizontal tension does not dominate the average tension in the wire
             //calculate the average tension in the wire then find the initial stress
             double startingCatenaryCosntant = wire.StartingTension / wire.FinalWireLinearWeight;
